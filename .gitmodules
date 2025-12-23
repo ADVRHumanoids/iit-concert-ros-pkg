@@ -1,3 +1,4 @@
 [submodule "concert_resources"]
 	path = concert_resources
 	url = https://github.com/ADVRHumanoids/concert_resources.git
+	branch = ros2
