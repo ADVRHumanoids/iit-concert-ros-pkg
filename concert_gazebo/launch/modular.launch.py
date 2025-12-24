@@ -128,18 +128,18 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Xbot2 GUI server and client
+    Xbot2 GUI server and client
     xbot2_gui_server = ExecuteProcess(
         condition=IfCondition(LaunchConfiguration('xbot2_gui')),
         cmd=['xbot2_gui_server', os.path.join(get_package_share_directory('concert_config'), 'gui', 'ros2', 'gui_server_config.yaml')],
         output='log'
     )
 
-    xbot2_gui_client = ExecuteProcess(
-        condition=IfCondition(LaunchConfiguration('xbot2_gui')),
-        cmd=['xbot2_gui'],
-        output='log'
-    )
+    # xbot2_gui_client = ExecuteProcess(
+    #     condition=IfCondition(LaunchConfiguration('xbot2_gui')),
+    #     cmd=['xbot2_gui'],
+    #     output='log'
+    # )
 
     # RViz node
     rviz_node = Node(
