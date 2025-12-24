@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>concert_cartesio</name>
+  <version>1.0.0</version>
+  <description>
+    Configuration files for the Concert
+  </description>
+  <!-- Maintainers -->
+  <maintainer email="valerio.passamano@iit.it">Valerio Passamano</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Build dependencies -->
+  <build_depend>urdf</build_depend>
+  <build_depend>xacro</build_depend>
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+  <depend>cartesian_interface</depend>
+  <depend>srdfdom</depend>
+  <!-- Execution dependencies -->
+  <exec_depend>urdf</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+  
+</package>
