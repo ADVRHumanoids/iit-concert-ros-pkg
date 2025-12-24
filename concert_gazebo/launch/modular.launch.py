@@ -158,6 +158,6 @@ def generate_launch_description():
         gazebo_group,
         xbot2_process,
         xbot2_gui_server,
-        xbot2_gui_client,
+#        xbot2_gui_client,
         rviz_node
     ])
