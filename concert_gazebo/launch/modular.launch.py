@@ -105,17 +105,57 @@ def generate_launch_description():
             name='urdf_spawner',
             parameters=[{'string': robot_description_gz, 'z': 1.0}]
         ),
+        # Bridge for standard topics
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
             name='ros_gz_bridge',
             arguments=[
+                # Clock
+                '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+                # IMU
                 '/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
+                # Velodyne LiDARs
                 '/VLP16_lidar_back/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
                 '/VLP16_lidar_front/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
-                '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'
             ],
-        )
+        ),
+        # Bridge for RealSense RGBD Cameras - Gazebo Harmonic rgbd_camera topics
+        # RGBD camera publishes to: /{topic}/image, /{topic}/depth_image, /{topic}/points
+        # Use image_bridge for RGB, parameter_bridge for depth
+        Node(
+            package='ros_gz_image',
+            executable='image_bridge',
+            name='d435i_front_color_bridge',
+            arguments=['/D435i_camera_front/image'],
+            remappings=[
+                ('/D435i_camera_front/image', '/D435i_camera_front/color/image_raw')
+            ],
+        ),
+        Node(
+            package='ros_gz_image',
+            executable='image_bridge',
+            name='d435i_back_color_bridge',
+            arguments=['/D435i_camera_back/image'],
+            remappings=[
+                ('/D435i_camera_back/image', '/D435i_camera_back/color/image_raw')
+            ],
+        ),
+        # Bridge for depth images using parameter_bridge
+        # Topics will be: /D435i_camera_front/depth_image, /D435i_camera_back/depth_image
+        Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            name='ros_gz_rgbd_bridge',
+            arguments=[
+                # Depth images
+                '/D435i_camera_front/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
+                '/D435i_camera_back/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
+                # Point clouds
+                '/D435i_camera_front/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+                '/D435i_camera_back/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+            ],
+        ),
     ])
 
     # Xbot2 process
