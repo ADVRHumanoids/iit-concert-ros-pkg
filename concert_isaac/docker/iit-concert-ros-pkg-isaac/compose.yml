@@ -1,0 +1,59 @@
+x-default-isaac-lab-template-environment: &default-isaac-lab-template-environment
+  - OMNI_KIT_ALLOW_ROOT=1
+  - DISPLAY
+  - XAUTHORITY=/root/.Xauthority
+  - ACCEPT_EULA=Y
+  - PRIVACY_CONSENT=Y
+
+x-default-isaac-lab-template-deploy: &default-isaac-lab-template-deploy
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [ gpu ]
+
+services:
+  isaac-sim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: iit-concert-isaac:local
+    volumes:
+      - ${XAUTHORITY:-/tmp/.Xauthority}:/root/.Xauthority:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.xbot2_isaac:/tmp/.xbot2_isaac:rw
+      - ../../../:/workspace/iit-concert-ros-pkg:rw
+    network_mode: host
+    privileged: true
+    ipc: host
+    stdin_open: true
+    tty: true
+    restart: always
+    environment: *default-isaac-lab-template-environment
+    deploy: *default-isaac-lab-template-deploy
+    entrypoint: ""
+    command: bash -ic 'pip install -e /workspace/iit-concert-ros-pkg/concert_isaac/python; bash -i'
+
+  concert-xbot2:
+    build:
+      context: ../../../../..
+      dockerfile: concert_robot/iit-concert-ros-pkg/concert_isaac/docker/iit-concert-ros-pkg-isaac/Dockerfile.xbot2_isaac
+    image: concert-xbot2:local
+    volumes:
+      - ${XAUTHORITY:-/tmp/.Xauthority}:/root/.Xauthority:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.xbot2_isaac:/tmp/.xbot2_isaac:rw
+      - ../../../:/workspace/iit-concert-ros-pkg:rw
+      - ../../../:/home/user/xbot2_ws/src/iit-concert-ros-pkg:rw
+    working_dir: /home/user/xbot2_ws/src/iit-concert-ros-pkg/concert_config/xbot2
+    network_mode: host
+    privileged: true
+    stdin_open: true
+    tty: true
+    restart: always
+    environment:
+      - DISPLAY
+      - XAUTHORITY=/root/.Xauthority
+    entrypoint: ""
+    command: /workspace/iit-concert-ros-pkg/concert_isaac/lib/src/concert_xbot2_shell.sh

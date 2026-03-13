@@ -1,0 +1,65 @@
+# Derived image for Concert robot xbot2 + Isaac Lab integration.
+#
+# Includes:
+#   - xbot2_zmq plugins (zmq_hal, zmq_io) pre-compiled into /opt/xbot
+#   - iit-dagana-ros-pkg cloned + compiled so concert_example.py can generate
+#     the same URDF/SRDF pair used by the previously validated flow
+#   - automatic shell environment setup for ROS2/XBot2/modular tooling
+#
+# Build:
+#   docker compose build concert-xbot2
+#
+# The image is used by the concert-xbot2 service in docker-compose.yml.
+
+FROM hhcmhub/concert-noble-ros2-sim:latest
+
+SHELL ["/bin/bash", "-lc"]
+
+# --- Stage 1: Build and install xbot2_zmq (needs root for /opt/xbot) ---
+USER root
+
+COPY kyon_robot/xbot2_zmq /tmp/xbot2_zmq
+
+RUN source /opt/ros/jazzy/setup.bash && \
+    source /opt/xbot/setup.sh && \
+    source /home/user/xbot2_ws/setup.bash && \
+    source /home/user/env/bin/activate && \
+    cmake -S /tmp/xbot2_zmq -B /tmp/xbot2_zmq_build \
+      -DCMAKE_PREFIX_PATH="/opt/xbot;/opt/ros/jazzy" \
+      -DCMAKE_INSTALL_PREFIX=/opt/xbot && \
+    cmake --build /tmp/xbot2_zmq_build -j"$(nproc)" && \
+    cmake --install /tmp/xbot2_zmq_build && \
+    rm -rf /tmp/xbot2_zmq /tmp/xbot2_zmq_build
+
+# --- Stage 2: Restore Dagana so the official Concert generator works ---
+USER user
+
+RUN source /opt/ros/jazzy/setup.bash && \
+    source /opt/xbot/setup.sh && \
+    source /home/user/xbot2_ws/setup.bash && \
+    source /home/user/env/bin/activate && \
+    cd /home/user/xbot2_ws && \
+    forest grow iit-dagana-ros-pkg -j 20 --clone-depth 1 -v && \
+    source /opt/ros/jazzy/setup.bash && \
+    colcon build --packages-select dagana_urdf --cmake-args -DCMAKE_BUILD_TYPE=Release && \
+    source install/setup.bash && \
+    ros2 pkg prefix --share dagana_urdf
+
+USER root
+
+# Make interactive shells inside the container pick up the ROS/XBot/modular
+# environment automatically, including plain `docker exec ... bash`.
+RUN cat <<'EOF' >/etc/profile.d/concert_xbot2_env.sh
+source /opt/ros/jazzy/setup.bash
+source /opt/xbot/setup.sh
+if [ -f /home/user/xbot2_ws/setup.bash ]; then
+    source /home/user/xbot2_ws/setup.bash
+fi
+if [ -f /home/user/env/bin/activate ]; then
+    source /home/user/env/bin/activate
+fi
+export PYTHONPATH="/home/user/xbot2_ws/src/modular/src${PYTHONPATH:+:${PYTHONPATH}}"
+EOF
+
+RUN printf '\nsource /etc/profile.d/concert_xbot2_env.sh\n' >> /root/.bashrc && \
+    printf '\nsource /etc/profile.d/concert_xbot2_env.sh\n' >> /home/user/.bashrc

@@ -1,0 +1,153 @@
+XBotInterface:
+    urdf_path: $(rospack find robots)/robots/concert/urdf/ModularBot.urdf
+    srdf_path: $(rospack find robots)/robots/concert/srdf/ModularBot.srdf
+    joint_map_path: $(rospack find robots)/robots/concert/joint_map/ModularBot_joint_map.yaml
+
+ModelInterface:
+    model_type: RBDL
+    is_model_floating_base: true
+
+
+xbotcore_device_configs:
+    sim: $(rospack find modularbot)/config/hal/ModularBot_gz.yaml
+    dummy: $(rospack find modularbot)/config/hal/ModularBot_dummy.yaml
+    ec_imp: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_idle: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+
+
+xbotcore_threads:
+
+    rt_main:
+        sched: fifo
+        prio: 60
+        period: 0.001
+
+    nrt_main:
+        sched: other
+        prio: 0
+        period: 0.005
+
+    nrt_control: {sched: other, prio: 0, period: 0.005, core_id: 3}
+
+xbotcore_plugins:
+    
+    ros_io:
+        thread: nrt_main
+        type: ros_io
+    
+    ros_ctrl:
+        thread: nrt_main
+        type: ros_control
+    
+    homing:
+        thread: rt_main
+        type: homing
+    
+    ec_ros:
+        thread: nrt_main
+        type: ec_ros
+
+    proximity_homing:
+        thread: nrt_control
+        type: homing_utility
+        params:
+           qhome: {value: [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,  -0.05,0.40,0.0,-1.15,0.0], type: Eigen::VectorXd} # 5 arm(5)
+        
+    # ik_wb_controller:
+    #     thread: nrt_control
+    #     type: IKPositionControllerWBPlugin
+    #     params:
+    #         references_mode: {value: continuous, type: string} # discrete - continuous
+    #         task_solver_type: {value: OpenSot, type: string}
+    #         task_path: {value: $(rospack find robots)/robots/concert/task/concert_stack_whole_body_control.yaml, type: file}
+    #         task_path_config : {value: /home/embedded/xbot2_ws/src/concert_config/ModularBot_proximity.yaml, type: file} # if u want to pass a different model to cartesio
+    #         task_solver_control_loop: {value: 0.005, type: double}
+    #         robot_chains_name: {value: [base_control,arm_control], type: vector<string>}
+    #         robot_chains_start_joint_map: {value: [0,8], type: vector<int>}
+    #         robot_chains_end_joint_map: {value: [7,12], type: vector<int>}
+    #         robot_car_frame_name: {value: base_control, type: string} # task name as in cartesio
+    #         target_pose_error_threshold: {value: 0.005, type: double}
+    #         robot_virtual_joints_num: {value: 6, type: int}
+    #         sub_topic_name: {value: /target_pose, type: string}
+    #         use_gravity_compensation: {value: false, type: bool}
+    #         logger_path: {value: /tmp/, type: string}
+    #         logger_buffer_mode: {value: false, type: bool}
+
+    # proximity_notifier:
+    #     thread: nrt_control
+    #     type: proximityNotifierPlugin
+    #     params:
+    #        n_sensors: {value: 8, type: int} # meter
+    #        n_sensors_frame_name: {value: [teraflex_1_sensor0_link,teraflex_1_sensor1_link,teraflex_1_sensor2_link,teraflex_1_sensor3_link,teraflex_1_sensor4_link,teraflex_1_sensor5_link,teraflex_1_sensor6_link,teraflex_1_sensor7_link], type: vector<string>} # as in urdf model
+    #        n_sensors_base_frame: {value: mobile_base, type: string}
+    #        sensor_axis: {value: [1,0,0], type: Eigen::VectorXd}
+    #        sensor_limit_min: {value: 0.05, type: double}
+    #        sensor_limit_max: {value: 2.0, type: double}
+    #        sensors_calibration_period: {value: 10, type: int}
+    #        sensors_calibration_resolution: {value: 0.01, type: double}
+    #        sensors_tracking_movement_resolution: {value: 0.02, type: double}
+    #        sensors_commanding_ball_dimension: {value: 0.20, type: double}
+    #        sensors_sub_topic_name: {value: /ranges, type: string}
+    #        control_motion: {value: [0,1,1,0,0,0,0], type: Eigen::VectorXd}
+    #        control_task_name: {value: [base_control,arm_control], type: vector<string>} # as cartesio
+    #        control_task_workspace: {value: [2.0,0.2], type: vector<double>}
+    #        control_task_tip_link_name: {value: [mobile_base,ee_E], type: vector<string>} # as in srdf
+    #        control_task_base_link_name: {value: [world,mobile_base], type: vector<string>} # as in srdf
+    #        control_axis_task: {value: [0,1,0,0,0,1], type: Eigen::VectorXd}
+    #        control_velocity_commanded_min: {value: 0.1, type: double} # m/s
+    #        control_velocity_commanded_max: {value: 0.2, type: double}
+    #        control_loop: {value: 0.005, type: double}
+    #        control_task_target_pose_pub_topic_name: {value: /target_pose, type: string}
+    #        control_task_base_velocity: {value: false, type: bool} # if u need to control the robot base separatly
+    #        control_task_base_name: {value: base_control, type: string}
+    #        task_wrench: {value: [0.0,0.0,0.0,10.0,10.0,10.0], type: vector<double>}
+    #        task_desired_error: {value: [0.01,0.01,0.01,0.1,0.1,0.1], type: vector<double>}
+    #        task_time: {value: [0.5], type: vector<double>}
+    #        error_modulation_mode: {value: 1.0, type: double} # 0:exp-1:distance_driven
+    #        wrench_modulation_mode: {value: 0.0, type: double} # 0:exp-1:p control
+    #        contact_driven: {value: 0.0, type: double} # 0:false-1:true
+    #        target_elements: {value: 7.0, type: double}
+    #        n_targets: {value: 1.0, type: double}
+    #        loop_targets: {value: 0.0, type: double}
+    #        are_degrees: {value: 0.0, type: double}
+    #        robot_commanding: {value: true, type: bool} # 0:false-1:true
+    #        device_fixed: {value: 0.0, type: double} # 0: false-1: true
+    #        logger_path: {value: /tmp/, type: string}
+    #        logger_buffer_mode: {value: false, type: bool}       
+
+    joint_impedance_control: 
+        thread: nrt_control
+        type: joint_impedance_controlH
+        params:
+            robot_task_config_file: {value: $(rospack find robots)/robots/concert/configs/vim/robotTaskSettings/robot_task_config_concert.yaml, type: file}
+            im_engine_config_file: {value: $(rospack find robots)/robots/concert/configs/vim/vimSettings/vim_config_concert.yaml, type: file}
+            plugin_settings_config_file: {value: $(rospack find robots)/robots/concert/configs/vim/pluginSettings/plugin_config_concert.yaml, type: file}
+            target_topic: {value: /target_pose, type: string}
+            robot_topic: {value: /robot_feedback, type: string}
+            contact_detection_topic: {value: /contact_notifier, type: string}
+            external_wrench_topic: {value: /external_wrench, type: string}
+
+    move_arm:
+        thread: nrt_control
+        type: targetSender
+        params:
+          task_name: {value: [arm_control], type: vector<string>} # as in cartesio stack
+          task_pose: {value: [1.06549,-0.0284177,0.605787,0.488314,-0.509643,0.510056,-0.491586], type: vector<double>} # arm  
+          task_wrench: {value: [0.0,0.0,0.0,10.0,10.0,10.0], type: vector<double>}
+          task_desired_error: {value: [0.01,0.05,0.01,0.1,0.1,0.1], type: vector<double>}
+          task_time: {value: [20.0], type: vector<double>}
+          error_modulation_mode: {value: 1.0, type: double} # 0:exp-1:distance_driven
+          wrench_modulation_mode: {value: 1.0, type: double} # 0:exp-1:not implemented yet feedback
+          contact_driven: {value: 0.0, type: double} # 0:false-1:true
+          target_elements: {value: 7.0, type: double}
+          n_targets: {value: 1.0, type: double}
+          loop_targets: {value: 0.0, type: double}
+          are_degrees: {value: 0.0, type: double}
+          topic_name: {value: /target_pose, type: string}
+
+xbotcore_param:
+    /xbot/hal/joint_safety/filter_autostart: {value: true, type: bool}
+    /xbot/hal/joint_safety/filter_cutoff_hz: {value: 2.0, type: double}
+    /xbot/trigger_safety_on_shutdown:
+        value: false
+        type: bool

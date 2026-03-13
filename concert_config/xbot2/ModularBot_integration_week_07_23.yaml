@@ -1,0 +1,177 @@
+XBotInterface:
+    urdf_path: $(rospack find modularbot)/urdf/ModularBot.urdf
+    srdf_path: $(rospack find modularbot)/srdf/ModularBot.srdf
+    joint_map_path: $(rospack find modularbot)/joint_map/ModularBot_joint_map.yaml
+
+ModelInterface:
+    model_type: RBDL
+    is_model_floating_base: true
+
+
+xbotcore_device_configs:
+    sim: $(rospack find modularbot)/config/hal/ModularBot_gz.yaml
+    dummy: $(rospack find modularbot)/config/hal/ModularBot_dummy.yaml
+    ec_imp: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_idle: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_pos: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+
+
+# threads
+xbotcore_threads:
+    rt_main: {sched: fifo, prio: 60, period: 0.001, core_id: 2}
+    nrt_main: {sched: other, prio: 0, period: 0.001}
+    nrt_control: {sched: other, prio: 0, period: 0.005, core_id: 3}
+
+# plugins
+xbotcore_plugins:
+
+    ros_io: {thread: nrt_main, type: ros_io, params: {publish_tf: {type: bool, value: true}}}
+    ros_control: {thread: nrt_main, type: ros_control, params: {autostart: {type: bool, value: true}}}
+    ec_ros: {thread: nrt_main, type: ec_ros}
+
+    gcomp_example:
+      type: gcomp_example
+      thread: rt_main
+      params:
+        enabled_chains:
+          value: [chain_E]
+          type: vector<string>
+
+    homing:
+      type: homing
+      thread: rt_main
+
+    homing_drilling_wheels:
+        thread: nrt_control
+        type: homing_utility
+        params:
+           qhome: {value: [-1.56,0.0,1.56,0.0,-1.56,0.0,1.56,0.0,  0.0,0.0,0.0,0.0,0.0,0.0], type: Eigen::VectorXd} # legs(8) + arm(?)
+           enabled_chains: {value: ['chain_A', 'chain_B', 'chain_C', 'chain_D', 'chain_E'], type: vector<string>}
+           time: {value: 5.0, type: double}
+           xbot_old_version: {value: false, type: bool}
+
+    homing_drilling_115m:
+        thread: nrt_control
+        type: homing_utility
+        params:
+           qhome: {value: [-1.56,0.0,1.56,0.0,-1.56,0.0,1.56,0.0,  0.0,-0.78,0.0,1.5,0.0,2.35], type: Eigen::VectorXd} # legs(8) + arm(?)
+           enabled_chains: {value: ['chain_E'], type: vector<string>}
+           time: {value: 10.0, type: double}
+           xbot_old_version: {value: false, type: bool}
+
+    get_impedance:
+        thread: nrt_control
+        type: JointGetImpedanceH
+
+    set_impedance:
+        thread: nrt_control
+        type: JointSetImpedanceH
+        params:
+           joints_stiffness: {value: [500,0,500,0,500,0,500,0,  1500,1500,1500,1500,1500,1500], type: Eigen::VectorXd} # legs(8) + arm(?)
+           model_wheels_names: {value: [J_wheel_A,J_wheel_B,J_wheel_C,J_wheel_D], type: vector<string>}
+           ref_time: {value: 5.0, type: double}
+           xbot_old_version: {value: false, type: bool}
+           enabled_chains: {value: ['chain_A', 'chain_B', 'chain_C', 'chain_D', 'chain_E'], type: vector<string>}
+
+    move_arm_drilling:
+        thread: nrt_control
+        type: targetSenderWithPose
+        params:
+          task_name: {value: [arm_control], type: vector<string>} # as in cartesio stack
+          #task_pose: {value: [0.98921,-0.15814,0.54,-0.00133822,0.00126489,-0.00458354,0.999988], type: vector<double>} # arm  
+          task_wrench: {value: [0.0,0.0,0.0,10.0,10.0,10.0], type: vector<double>}
+          task_desired_error: {value: [0.01,0.05,0.01,0.01,0.01,0.01], type: vector<double>}
+          task_time: {value: [10.0], type: vector<double>}
+          error_modulation_mode: {value: 1.0, type: double} # 0:exp-1:distance_driven
+          wrench_modulation_mode: {value: 1.0, type: double} # 0:exp-1:recoverywrench
+          contact_driven: {value: 0.0, type: double} # 0:false-1:true
+          target_elements: {value: 7.0, type: double}
+          n_targets: {value: 1.0, type: double}
+          loop_targets: {value: 0.0, type: double}
+          are_degrees: {value: 0.0, type: double}
+          topic_name: {value: /target_pose, type: string}
+
+    move_arm_back:
+        thread: nrt_control
+        type: targetSenderWithPose
+        params:
+          task_name: {value: [arm_control], type: vector<string>} # as in cartesio stack
+          #task_pose: {value: [0.78921,-0.15814,0.54,-0.00133822,0.00126489,-0.00458354,0.999988], type: vector<double>} # arm  
+          task_wrench: {value: [0.0,0.0,0.0,10.0,10.0,10.0], type: vector<double>}
+          task_desired_error: {value: [0.01,0.05,0.01,0.01,0.01,0.01], type: vector<double>}
+          task_time: {value: [10.0], type: vector<double>}
+          error_modulation_mode: {value: 1.0, type: double} # 0:exp-1:distance_driven
+          wrench_modulation_mode: {value: 1.0, type: double} # 0:exp-1:recoverywrench
+          contact_driven: {value: 0.0, type: double} # 0:false-1:true
+          target_elements: {value: 7.0, type: double}
+          n_targets: {value: 1.0, type: double}
+          loop_targets: {value: 0.0, type: double}
+          are_degrees: {value: 0.0, type: double}
+          topic_name: {value: /target_pose, type: string}
+
+    joint_impedance_control: 
+        thread: nrt_control
+        type: joint_impedance_controlH
+        params:
+            robot_task_config_file: {value: $(rospack find robots)/concert/configs/vim/robotTaskSettings/robot_task_config_concert_arm_drilling.yaml, type: file}
+            im_engine_config_file: {value: $(rospack find robots)/concert/configs/vim/vimSettings/vim_config_concert_arm_6_dof.yaml, type: file}
+            plugin_settings_config_file: {value: $(rospack find robots)/concert/configs/vim/pluginSettings/plugin_config_concert.yaml, type: file}
+            xbot_old_version: {value: false, type: bool}
+            model_wheels_names: {value: [J_wheel_A,J_wheel_B,J_wheel_C,J_wheel_D], type: vector<string>}
+            target_topic: {value: /target_pose, type: string}
+            robot_topic: {value: /robot_feedback, type: string}
+            contact_detection_topic: {value: /contact_notifier, type: string}
+            external_wrench_topic: {value: /external_wrench, type: string}
+            enabled_chains: {value: ['chain_E'], type: vector<string>}
+
+    target_recorder:
+        thread: nrt_control
+        type: targetRecorder
+        params:
+            tip_link_name: {value: ee_E, type: string} # name chain in srdf
+            base_link_name: {value: mobile_base, type: string} # name chain in srdf
+            orientation_representation: {value: quat, type: string} # eulRad - eulDeg - quat
+
+    force_follow_me:
+        type: force_follow_me
+        thread: nrt_main
+        params:
+          max_force: { value: 65.0, type: double }
+          max_lin_velocity:  { value: 0.77, type: double }
+          max_ang_velocity:  { value: 0.70, type: double }
+          force_threshold: { value: 5.5, type: double }
+        remap:
+          cmd_vel_V6: omnisteering/cmd_vel_V6
+
+    omnisteering:
+        thread: nrt_main
+        type: omnisteering_controller_plugin
+        params:
+            wheel_names:
+                value: [wheel_A, wheel_B, wheel_C, wheel_D]
+                type: vector<string>
+            wheel_radius:
+                value: [0.16, 0.16, 0.16, 0.16]
+                type: vector<double>
+
+    safety_shield:
+      type: testnode
+      thread: rt_main
+      params:
+        trajectory_config_file: 
+          type: file
+          value: /home/embedded/tum_integration_ws/src/sara-shield/safety_shield/config/trajectory_parameters_concert.yaml
+        robot_config_file: 
+          type: file
+          value: /home/embedded/tum_integration_ws/src/sara-shield/safety_shield/config/robot_parameters_concert.yaml
+        mocap_config_file: 
+          type: file
+          value: /home/embedded/tum_integration_ws/src/sara-shield/safety_shield/config/profactor_mocap.yaml
+
+xbotcore_param:
+    /xbot/hal/joint_safety/filter_autostart: {value: true, type: bool}
+    /xbot/hal/joint_safety/filter_cutoff_hz: {value: 2.0, type: double}
+    /xbot/trigger_safety_on_shutdown: {value: false, type: bool}
+    /xbot/ros_support/ros_args_: 
+      value: [/omnisteering/cmd_vel:=/cmd_vel]
+      type: vector<string>

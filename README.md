@@ -1,5 +1,22 @@
 # iit-concert-ros-pkg
 
+This tree is the canonical deployment source for the validated Concert Isaac +
+XBot2 flow in this workspace.
+
+The Isaac-side layout now follows the Kyon pattern:
+
+- `concert_isaac`
+  - `docker/iit-concert-ros-pkg-isaac`
+  - `lib/src`
+  - `python/src/concert_isaac`
+- `concert_urdf`
+- `concert_srdf`
+- `concert_usd`
+- `concert_config`
+
+The top-level mirrors under `concert_robot/concert_isaac` and
+`concert_robot/concert_config` are kept temporarily as legacy backups only.
+
 ROS packages for the Concert robot simulation and demonstration.
 
 ## Overview

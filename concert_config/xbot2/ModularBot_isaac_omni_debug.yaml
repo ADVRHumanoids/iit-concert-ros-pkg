@@ -1,0 +1,56 @@
+# Omnisteering debug profile for Concert Isaac bringup.
+#
+# Usage:
+#   xbot2-core -C ModularBot_isaac_omni_debug.yaml -H isaac
+#
+# This profile is identical to the stable Isaac config plus omnisteering.
+# Use it only to reproduce and debug the omnisteering crash.
+# The generated Concert model uses:
+#   - J_wheel_A/B/C/D as wheel joint names
+#   - wheel_A/B/C/D as wheel link names
+# but this omnisteering plugin dereferences the wheel link and then walks
+# to its parent joint, so wheel_names must use wheel_A/B/C/D here.
+
+XBotInterface:
+    urdf: ros2 run xbot2_ros topic_echo /robot_description
+    srdf: ros2 run xbot2_ros topic_echo /robot_description_semantic
+
+ModelInterface:
+    model_type: pin
+
+
+xbotcore_device_configs:
+    isaac: $PWD/../hal/ModularBot_isaac.yaml
+
+xbotcore_threads:
+    rt_main:  {sched: fifo, prio: 60, period: 0.001}
+    nrt_main: {sched: other, prio: 0, period: 0.005}
+
+
+xbotcore_plugins:
+    homing:
+        thread: rt_main
+        type: homing
+        params:
+            time:
+                type: double
+                value: 5.0
+            # NOTE: the Concert homing target comes from the committed deployment
+            # SRDF at concert_isaac/assets/srdf/ModularBot.srdf.
+
+    ros_io: {thread: nrt_main, type: ros2_io}
+    ros_control: {thread: nrt_main, type: ros2_control, params: {autostart: true}}
+
+    omnisteering:
+        thread: nrt_main
+        type: omnisteering_controller_plugin
+        params:
+            wheel_names: [wheel_A, wheel_B, wheel_C, wheel_D]
+            wheel_radius: [0.16, 0.16, 0.16, 0.16]
+            vel_offset_gain: 1.0
+    
+xbotcore_param:
+    /xbot/hal/joint_safety/filter_autostart: {value: true, type: bool}
+    /xbot/hal/joint_safety/filter_cutoff_hz: {value: 2.0, type: double}
+    /xbot/hal/enable_safety: {value: false, type: bool}
+    /xbot/trigger_safety_on_shutdown: {value: false, type: bool}

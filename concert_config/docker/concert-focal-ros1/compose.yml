@@ -1,0 +1,39 @@
+services:
+  base:
+    image: hhcmhub/concert-focal-ros1-base:latest
+    stdin_open: true
+    tty: true
+    privileged: true
+    entrypoint: /bin/bash
+    network_mode: host
+    cap_add:
+      - ALL
+    restart: no
+    ulimits:
+      core: -1
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw # x11
+      - ~/.ssh:/home/user/.ssh # ssh
+    environment:
+      - TERM=xterm-256color
+      - DISPLAY
+      - HHCM_FOREST_CLONE_DEFAULT_PROTO=https
+
+  dev:
+    extends: base
+    volumes:
+      - ~/.cache/concert-focal-ros1-dev:/home/user/data
+    environment:
+      - CUSTOM_PS="(dev) "
+  sim:
+    extends: base
+    image: hhcmhub/concert-focal-ros1-sim:latest
+    volumes:
+      - ~/.cache/concert-focal-ros1-sim:/home/user/data
+
+  xbot2_gui_server:
+    extends: base
+    entrypoint: bash -ic "cd ~/xbot2_ws/src/concert_config; git pull origin master; xbot2_gui_server gui/ros1/gui_server_config.yaml; bash"
+    restart: always
+    environment:
+      - CUSTOM_PS="(xbot2_gui_server) "

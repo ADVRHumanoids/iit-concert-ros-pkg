@@ -1,0 +1,7 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "tomli"
+]
+build-backend = "setuptools.build_meta"

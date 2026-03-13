@@ -1,0 +1,118 @@
+XBotInterface:
+    urdf_path: $(rospack find modularbot)/urdf/ModularBot.urdf
+    srdf_path: $(rospack find modularbot)/srdf/ModularBot.srdf
+    joint_map_path: $(rospack find modularbot)/joint_map/ModularBot_joint_map.yaml
+
+ModelInterface:
+    model_type: RBDL
+    is_model_floating_base: false
+
+
+xbotcore_device_configs:
+    sim: $(rospack find modularbot)/config/hal/ModularBot_gz.yaml
+    dummy: $(rospack find modularbot)/config/hal/ModularBot_dummy.yaml
+    ec_imp: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_idle: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_pos: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+
+
+xbotcore_threads:
+
+    rt_main:
+        sched: fifo
+        prio: 60
+        period: 0.001
+
+    nrt_main:
+        sched: other
+        prio: 0
+        period: 0.005
+
+
+.ctrl_override: &ctrl_override
+  type: map<int>
+  value:
+    dagana_E_claw_joint: 0
+
+xbotcore_plugins:
+    
+    ros_io:
+        thread: nrt_main
+        type: ros_io
+    
+    ros_ctrl:
+        thread: nrt_main
+        type: ros_control
+    
+    homing:
+        thread: rt_main
+        type: homing
+        params:
+          ctrl_override: *ctrl_override
+          time:
+            type: double
+            value: 10.0
+
+    ec_ros:
+        thread: nrt_main
+        type: ec_ros
+                
+    cartesio_imp: 
+        thread: rt_main 
+        type: albero_cartesio_rt
+        params:
+            ctrl_override: *ctrl_override
+            enabled_chains: 
+                value: [chain_E]
+                type: vector<string>
+            problem_description:
+                value: $PWD/ModularBot_impedance_config.yaml
+                type: file
+            solver: {value: AlberoImpedance, type: string}
+            enable_feedback: {value: true, type: bool}
+            fc_map: {value: {low: 0.85, high: 0.99}, type: map<double>}
+            use_payload_estimator:
+              value: false  # note: keep false if you care to live
+              type: bool
+            payload_estimator_link:
+              value: ee_E
+              type: string
+
+    gcomp:
+        thread: rt_main
+        type: gcomp_example
+        params:
+            enabled_chains: 
+                value: [chain_E]
+                type: vector<string>
+                
+    force_follow_me:
+        type: force_follow_me
+        thread: nrt_main
+        params: 
+            max_force: { value: 85.0, type: double } #75
+            max_lin_velocity:  { value: 0.07, type: double }
+            max_ang_velocity:  { value: 0.3, type: double }
+            force_threshold: { value: 8.0, type: double } #8.0
+            use_safety: {value: true, type: bool }
+            sensor_type: {value: 0, type: int} # 0 for sonar 1 for lidar [wip]
+            sensors:
+                value: [ "ultrasound_rr_lat", "ultrasound_rl_sag", "ultrasound_rl_lat", "ultrasound_fl_lat", "ultrasound_fr_lat"]  # "ultrasound_rr_sag",
+                type: vector<string>
+            sensor_threshold:
+                value: [0.75, 0.3] # max min threshold  
+                type: vector<double>
+            # sensor_link_name: {value: "handle_gripping_point_E", type: string }
+            sensor_link_name: {value: "ee_E", type: string }
+        remap:
+          cmd_vel_V6: omnisteering/cmd_vel_V6
+
+xbotcore_param:
+    /xbot/hal/joint_safety/filter_autostart: {value: true, type: bool}
+    /xbot/hal/joint_safety/filter_cutoff_hz: {value: 2.0, type: double}
+    /xbot/trigger_safety_on_shutdown:
+        value: true
+        type: bool
+    /xbot/hal/joint_safety/hack/disable_filter_tuning/dagana_E_claw_joint:
+        value: true
+        type: bool

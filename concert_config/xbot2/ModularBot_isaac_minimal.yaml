@@ -1,0 +1,40 @@
+# Truly minimal xbot2 config for Isaac debugging.
+#
+# Usage:
+#   xbot2-core -C ModularBot_isaac_minimal.yaml -H isaac
+#
+# This profile is intentionally tiny:
+#   - URDF/SRDF still come from ROS2 topics
+#   - only homing is loaded
+#   - no ros2_io, no ros2_control, no omnisteering
+#
+# Use this to isolate model loading and the Isaac zmq_hal path.
+
+XBotInterface:
+    urdf: ros2 run xbot2_ros topic_echo /robot_description
+    srdf: ros2 run xbot2_ros topic_echo /robot_description_semantic
+
+ModelInterface:
+    model_type: pin
+
+xbotcore_device_configs:
+    isaac: $PWD/../hal/ModularBot_isaac.yaml
+
+xbotcore_threads:
+    rt_main:  {sched: fifo, prio: 60, period: 0.001}
+    nrt_main: {sched: other, prio: 0, period: 0.005}
+
+xbotcore_plugins:
+    homing:
+        thread: rt_main
+        type: homing
+        params:
+            time:
+                type: double
+                value: 5.0
+
+xbotcore_param:
+    /xbot/hal/joint_safety/filter_autostart: {value: true, type: bool}
+    /xbot/hal/joint_safety/filter_cutoff_hz: {value: 2.0, type: double}
+    /xbot/hal/enable_safety: {value: false, type: bool}
+    /xbot/trigger_safety_on_shutdown: {value: false, type: bool}

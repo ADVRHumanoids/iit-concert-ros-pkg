@@ -17,10 +17,11 @@ install(TARGETS robot_description_publisher
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY gui hal joint_config
+install(DIRECTORY docker gui hal joint_config launch xbot2
   DESTINATION share/${PROJECT_NAME}/
 )
 install(FILES 
+  README.md
   modular.yaml
   ModularBot_impedance_config.yaml
   setup.sh
