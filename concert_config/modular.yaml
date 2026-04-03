@@ -1,8 +1,9 @@
 ## XBotInterface related configs
 
 XBotInterface:
-  urdf: "ros2 topic echo /robot_description --once --field data | grep -v '^---$'"
-  srdf: "ros2 topic echo /robot_description_semantic --once --field data | grep -v '^---$'"
+  urdf: ros2 run xbot2_ros topic_echo /robot_description
+  srdf: ros2 run xbot2_ros topic_echo /robot_description_semantic 
+
 ModelInterface:
   model_type: pin
 
@@ -13,6 +14,7 @@ ModelInterface:
 xbotcore_device_configs:
     sim: $(ros2 pkg prefix --share concert_config)/hal/ModularBot_gz.yaml
     dummy: $(ros2 pkg prefix --share concert_config)/hal/ModularBot_dummy.yaml
+    isaac: $(ros2 pkg prefix --share concert_config)/hal/ModularBot_isaac.yaml
 
 # define threads to be created
 xbotcore_threads:

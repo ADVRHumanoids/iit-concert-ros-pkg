@@ -20,6 +20,12 @@ _ASSETS_DIR = os.path.abspath(os.path.dirname(__file__))
 _CONCERT_USD = os.path.join(
     _ASSETS_DIR, "usd", "concert_complete", "concert_complete.usd"
 )
+_CONCERT_URDF = os.path.join(
+    _ASSETS_DIR, "urdf", "concert_complete.urdf"
+)
+_CONCERT_SRDF = os.path.join(
+    _ASSETS_DIR, "srdf", "concert_complete.srdf"
+)
 
 if not os.path.exists(_CONCERT_USD):
     raise FileNotFoundError(

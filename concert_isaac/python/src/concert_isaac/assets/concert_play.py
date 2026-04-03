@@ -22,6 +22,12 @@ _PKG_ROOT = os.path.abspath(os.path.join(_ASSETS_DIR, "..", "..", "..", "..", ".
 _CONCERT_USD = os.path.join(
     _PKG_ROOT, "concert_usd", "usd", "concert_complete", "concert_complete.usd"
 )
+_CONCERT_URDF = os.path.join(
+    _PKG_ROOT, "concert_urdf", "urdf", "concert_complete.urdf"
+)
+_CONCERT_SRDF = os.path.join(
+    _PKG_ROOT, "concert_srdf", "srdf", "ModularBot.srdf"
+)
 
 if not os.path.exists(_CONCERT_USD):
     raise FileNotFoundError(
