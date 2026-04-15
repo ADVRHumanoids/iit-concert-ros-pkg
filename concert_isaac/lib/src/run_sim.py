@@ -230,7 +230,7 @@ def spawn_usd_object(
                            If False a rigid-body API is applied so the object
                            participates in physics simulation.
     """
-    from pxr import Gf, UsdGeom, UsdPhysics
+    from pxr import Gf, UsdGeom, UsdPhysics, Vt
 
     cfg = sim_utils.UsdFileCfg(
         usd_path=usd_path,
@@ -246,20 +246,31 @@ def spawn_usd_object(
     # Spawn onto the stage
     prim = cfg.func(prim_path, cfg)
 
-    # Apply translation and orientation via XformCommonAPI
+    # Apply translation, orientation and scale via raw xformOp attributes.
+    # XformCommonAPI.SetRotate() only accepts Euler angles (GfVec3f), not quaternions,
+    # and fails on prims whose xformOp stack was already set by UsdFileCfg.
+    # Writing the ops directly works regardless of the existing stack.
     stage = sim_utils.SimulationContext.instance().stage if sim_utils.SimulationContext.instance() else None
     if stage is None:
         import omni.usd
         stage = omni.usd.get_context().get_stage()
 
-    xform_prim = UsdGeom.Xformable(stage.GetPrimAtPath(prim_path))
-    xform_api = UsdGeom.XformCommonAPI(xform_prim)
+    xformable = UsdGeom.Xformable(stage.GetPrimAtPath(prim_path))
     x, y, z = position
     w, qx, qy, qz = orientation_wxyz
-    xform_api.SetTranslate(Gf.Vec3d(x, y, z))
-    xform_api.SetRotate(Gf.Quatf(w, qx, qy, qz), UsdGeom.XformCommonAPI.RotationOrderXYZ)
+
+    # Clear any existing ops written by the spawner so we start clean.
+    xformable.ClearXformOpOrder()
+
+    translate_op = xformable.AddTranslateOp(UsdGeom.XformOp.PrecisionDouble)
+    translate_op.Set(Gf.Vec3d(x, y, z))
+
+    orient_op = xformable.AddOrientOp(UsdGeom.XformOp.PrecisionFloat)
+    orient_op.Set(Gf.Quatf(w, qx, qy, qz))
+
     sx, sy, sz = scale
-    xform_api.SetScale(Gf.Vec3f(sx, sy, sz))
+    scale_op = xformable.AddScaleOp(UsdGeom.XformOp.PrecisionFloat)
+    scale_op.Set(Gf.Vec3f(sx, sy, sz))
 
     kind = "static" if static else "dynamic"
     print(f"[Concert] Spawned {kind} object '{prim_path}'  pos={position}  from {usd_path}")
@@ -559,8 +570,17 @@ def main():
     metal_tube_usd = os.path.join(assets_path, "metal_tube_configurable.usda")
     spawn_usd_object(
         usd_path=metal_tube_usd,
-        prim_path="/World/metal_tube",
+        prim_path="/World/metal_tube_1",
         position=(2.0, 0.0, 1.0),
+        orientation_wxyz=(1.0, 0.0, 0.0, 0.0),
+        scale=(1.0, 1.0, 1.0),
+        static=True,
+    )
+
+    spawn_usd_object(
+        usd_path=metal_tube_usd,
+        prim_path="/World/metal_tube_2",
+        position=(2.0, 1.01, 1.0),
         orientation_wxyz=(1.0, 0.0, 0.0, 0.0),
         scale=(1.0, 1.0, 1.0),
         static=True,
