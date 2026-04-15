@@ -111,7 +111,7 @@ PYTHON_SRC_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "python", 
 if PYTHON_SRC_DIR not in sys.path:
     sys.path.insert(0, PYTHON_SRC_DIR)
 
-from concert_isaac.assets.concert_play import (CONCERT_CFG_PLAY,
+from concert_isaac.assets.concert_complete_play import (CONCERT_CFG_PLAY,
                     _CONCERT_URDF,
                     _CONCERT_SRDF)  # noqa: E402
 
@@ -268,64 +268,54 @@ def spawn_usd_object(
 def setup_rgbd_camera(scene: InteractiveScene):
     """Sets up ROS 2 publishers for the RGBD camera defined in the scene config.
 
-    Creates an OmniGraph pipeline that publishes:
-      - /camera/rgb          (sensor_msgs/Image, encoding bgr8)
-      - /camera/depth        (sensor_msgs/Image, encoding 32FC1)
+    Uses the same Replicator/SDG writer pipeline as the RTX lidar:
+      - attach_writer() on the camera's render product rather than building
+        an OmniGraph action graph by hand.
+
+    Publishes:
+      - /camera/rgb          (sensor_msgs/Image, bgr8)
+      - /camera/depth        (sensor_msgs/Image, 32FC1)
       - /camera/camera_info  (sensor_msgs/CameraInfo)
 
-    Must be called after sim.reset() so the camera prim exists on stage.
+    Writer name construction (mirrors extension.py registration):
+      RGB   : "LdrColorSD"            + "ROS2PublishImage"   -> "LdrColorSDROS2PublishImage"
+      Depth : "DistanceToImagePlaneSD" + "ROS2PublishImage"  -> "DistanceToImagePlaneSDROS2PublishImage"
+      Info  : "ROS2PublishCameraInfo"
+
+    Must be called after sim.reset() so the camera render product exists.
     """
-    import omni.graph.core as og
+    import omni.replicator.core as rep
 
     camera: Camera = scene["rgbd_camera"]
-    # IsaacLab Camera already creates a render product for each env during _initialize_impl().
-    # Reuse it directly — its path is a token string, which is exactly what ROS2CameraHelper
-    # expects for inputs:renderProductPath.  No IsaacCreateRenderProduct / SetCamera needed.
-    render_product_path = camera._render_product_paths[0]
-    frame_id = "rgbd_camera"
-    graph_path = "/World/ROS_RGBDCamera"
-
-    keys = og.Controller.Keys
-    og.Controller.edit(
-        {"graph_path": graph_path, "evaluator_name": "execution"},
-        {
-            keys.CREATE_NODES: [
-                ("OnPlaybackTick",  "omni.graph.action.OnPlaybackTick"),
-                ("RunOnce",         "isaacsim.core.nodes.OgnIsaacRunOneSimulationFrame"),
-                ("Context",         "isaacsim.ros2.bridge.ROS2Context"),
-                ("RGBPublish",      "isaacsim.ros2.bridge.ROS2CameraHelper"),
-                ("DepthPublish",    "isaacsim.ros2.bridge.ROS2CameraHelper"),
-                ("CameraInfo",      "isaacsim.ros2.bridge.ROS2CameraInfoHelper"),
-            ],
-            keys.SET_VALUES: [
-                # render_product_path is a token string — set it directly as a value on each helper
-                ("RGBPublish.inputs:renderProductPath",         render_product_path),
-                ("RGBPublish.inputs:type",                      "rgb"),
-                ("RGBPublish.inputs:topicName",                 "/camera/rgb"),
-                ("RGBPublish.inputs:frameId",                   frame_id),
-                ("RGBPublish.inputs:resetSimulationTimeOnStop", True),
-                ("DepthPublish.inputs:renderProductPath",       render_product_path),
-                ("DepthPublish.inputs:type",                    "depth"),
-                ("DepthPublish.inputs:topicName",               "/camera/depth"),
-                ("DepthPublish.inputs:frameId",                 frame_id),
-                ("DepthPublish.inputs:resetSimulationTimeOnStop", True),
-                ("CameraInfo.inputs:renderProductPath",         render_product_path),
-                ("CameraInfo.inputs:topicName",                 "/camera/camera_info"),
-                ("CameraInfo.inputs:frameId",                   frame_id),
-                ("CameraInfo.inputs:resetSimulationTimeOnStop", True),
-            ],
-            keys.CONNECT: [
-                ("OnPlaybackTick.outputs:tick",  "RunOnce.inputs:execIn"),
-                ("RunOnce.outputs:step",         "RGBPublish.inputs:execIn"),
-                ("RunOnce.outputs:step",         "DepthPublish.inputs:execIn"),
-                ("RunOnce.outputs:step",         "CameraInfo.inputs:execIn"),
-                ("Context.outputs:context",      "RGBPublish.inputs:context"),
-                ("Context.outputs:context",      "DepthPublish.inputs:context"),
-                ("Context.outputs:context",      "CameraInfo.inputs:context"),
-            ],
-        },
+    # Use the concrete camera prim path (not the render product path string) so that
+    # rep.create.render_product returns — or reuses — exactly the same HydraTexture
+    # that IsaacLab created during _initialize_impl(). Passing the already-resolved
+    # render product path string can cause Replicator to fall back to the viewport camera.
+    cam_prim_path = camera._view.prim_paths[0]
+    rp = rep.create.render_product(
+        cam_prim_path,
+        resolution=(camera.cfg.width, camera.cfg.height),
     )
+    render_product_path = rp if isinstance(rp, str) else rp.path
 
+    frame_id = "rgbd_camera"
+
+    # RGB image — writer name matches the registered SDG writer for LdrColorSD
+    rgb_writer = rep.WriterRegistry.get("LdrColorSD" + "ROS2PublishImage")
+    rgb_writer.initialize(topicName="/camera/rgb", frameId=frame_id)
+    rgb_writer.attach([rp])
+
+    # Depth image (distance_to_image_plane, 32FC1)
+    depth_writer = rep.WriterRegistry.get("DistanceToImagePlaneSD" + "ROS2PublishImage")
+    depth_writer.initialize(topicName="/camera/depth", frameId=frame_id)
+    depth_writer.attach([rp])
+
+    # Camera info
+    info_writer = rep.WriterRegistry.get("ROS2PublishCameraInfo")
+    info_writer.initialize(topicName="/camera/camera_info", frameId=frame_id)
+    info_writer.attach([rp])
+
+    print(f"[Concert] RGBD camera prim:         {cam_prim_path}")
     print(f"[Concert] RGBD render product:      {render_product_path}")
     print(f"[Concert] Publishing /camera/rgb, /camera/depth, /camera/camera_info  (frame: {frame_id})")
 
@@ -348,7 +338,6 @@ def setup_sensors(sim: SimulationContext, scene: InteractiveScene):
         prim_path=lidar_prim_path,
         name="rtx_lidar",
         # translation is relative to the parent prim (base_link).
-        # Place the sensor 0.3 m above base_link, centred horizontally.
         translation=np.array([0.5, 0.0, 0.3]),
         orientation=np.array([1.0, 0.0, 0.0, 0.0]),  # (w, x, y, z)
         config_file_name="HESAI_XT32_SD10",
@@ -509,17 +498,18 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, lid
         count += 1
         scene.update(sim_dt)
 
-        # Keep the viewport camera behind and above the robot base, tracking its heading.
-        # root_quat_w is (num_envs, 4) as (w, x, y, z); root_pos_w is (num_envs, 3).
-        robot_pos = robot.data.root_pos_w[0].cpu().numpy()   # [x, y, z]
-        quat = robot.data.root_quat_w[0].cpu().numpy()       # [w, x, y, z]
-        # Extract yaw from quaternion: yaw = atan2(2(wz + xy), 1 - 2(y² + z²))
-        w, x, y, z = quat
-        yaw = np.arctan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
-        # Camera sits 3 m behind the robot (opposite to its forward direction) and 2 m up.
-        cam_behind = np.array([-np.cos(yaw), -np.sin(yaw), 0.0]) * 6.0
-        cam_eye = robot_pos + cam_behind + np.array([0.0, 0.0, 4.0])
-        sim.set_camera_view(eye=cam_eye.tolist(), target=robot_pos.tolist())
+        if 0 > 1:
+            # Keep the viewport camera behind and above the robot base, tracking its heading.
+            # root_quat_w is (num_envs, 4) as (w, x, y, z); root_pos_w is (num_envs, 3).
+            robot_pos = robot.data.root_pos_w[0].cpu().numpy()   # [x, y, z]
+            quat = robot.data.root_quat_w[0].cpu().numpy()       # [w, x, y, z]
+            # Extract yaw from quaternion: yaw = atan2(2(wz + xy), 1 - 2(y² + z²))
+            w, x, y, z = quat
+            yaw = np.arctan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
+            # Camera sits 3 m behind the robot (opposite to its forward direction) and 2 m up.
+            cam_behind = np.array([-np.cos(yaw), -np.sin(yaw), 0.0]) * 6.0
+            cam_eye = robot_pos + cam_behind + np.array([0.0, 0.0, 4.0])
+            sim.set_camera_view(eye=cam_eye.tolist(), target=robot_pos.tolist())
 
         # Print real-time factor every ~1s
         now = time.time()
@@ -562,6 +552,19 @@ def main():
     # Design scene
     scene_cfg = ConcertSceneCfg(num_envs=1, env_spacing=2.0)
     scene = InteractiveScene(scene_cfg)
+
+    # Spawn any additional USD objects that are not part of the scene config
+    import concert_isaac.assets 
+    assets_path = os.path.dirname(concert_isaac.assets.__file__)
+    metal_tube_usd = os.path.join(assets_path, "metal_tube_configurable.usda")
+    spawn_usd_object(
+        usd_path=metal_tube_usd,
+        prim_path="/World/metal_tube",
+        position=(2.0, 0.0, 1.0),
+        orientation_wxyz=(1.0, 0.0, 0.0, 0.0),
+        scale=(1.0, 1.0, 1.0),
+        static=True,
+    )
 
     # Setup sensors — must happen before sim.reset() so the prim exists on stage
     lidar = setup_sensors(sim, scene)

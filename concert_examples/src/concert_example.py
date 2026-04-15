@@ -3,7 +3,7 @@ from modular.URDF_writer import *
 with suppress_stdout():
 
     # create UrdfWriter object and joint map to store homing values
-    urdf_writer = UrdfWriter(speedup=True, floating_base=True)
+    urdf_writer = UrdfWriter(speedup=True, floating_base=False)
     homing_joint_map = {}
 
     # add mobile base

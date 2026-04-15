@@ -74,7 +74,7 @@ import yaml
 # Option 2: add to sys.path for direct import
 ##
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-from assets.concert_play import CONCERT_CFG_PLAY  # noqa: E402
+from concert_isaac.assets.myrobot_play import CONCERT_CFG_PLAY  # noqa: E402
 
 
 @configclass

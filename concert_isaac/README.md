@@ -26,6 +26,22 @@ Runtime note:
   - add the missing `imu_material` name in the URDF
   - remove the invalid `hands` block from the SRDF
 
+## USD generation
+
+In addition to the *concert_complete* example configuration that is available "out of the box", 
+we provide the possibility to generate URDF/SRDF/USD from the Modular python script, as follows:
+
+```bash
+# run from the host machine!
+# this will (i) invoke the provided modular script (concert_example.py in this case),
+# (ii) save urdf and srdf to the assets directory,
+# and (iii) generate the usd folder, also inside the assets directory
+# note: replace 'myrobot' with a descriptive name for the modula robot configuration (e.g. 'concert_base_only')
+python concert_isaac/lib/src/generate_modular_usd.py concert_examples/src/concert_example.py myrobot -- --headless
+```
+
+*Note* Isaac will fail if any asset name (such as .stl files) contains dash ('-') characters. Make sure t
+
 ## Package-local Docker flow
 
 Work from the package-local docker directory:
