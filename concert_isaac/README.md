@@ -26,6 +26,27 @@ Runtime note:
   - add the missing `imu_material` name in the URDF
   - remove the invalid `hands` block from the SRDF
 
+## Validated changes in this checkout
+
+These are the changes that made the current Isaac + XBot2 + CartesIO flow work:
+
+- `concert_isaac/lib/src/run_sim.bash`
+  - now launches through `isaaclab.sh -p` instead of plain `python`
+- `concert_isaac/lib/src/run_sim.py`
+  - enables `isaacsim.sensors.rtx` before importing `LidarRtx`
+  - uses the packaged `concert_play` config path
+  - no longer spawns the unrelated metal tube from the other project
+- `concert_config/xbot2/ModularBot_isaac_cartesio.yaml`
+  - adds a separate Isaac profile for the CartesIO bringup
+  - keeps the stable xbot2 plugins and deliberately does not load the missing
+    private `albero_cartesio_rt` plugin
+- `concert_cartesio/launch/concert_isaac_cartesio.launch.py`
+  - launches the public ROS-side CartesIO server (`cartesian_interface_ros`)
+  - remaps robot descriptions from `/xbotcore/robot_description{,_semantic}`
+- `concert_cartesio/concert_isaac_stack.yaml`
+  - defines the arm IK task on `ee_E`
+  - excludes wheel/steering joints so CartesIO does not fight omnisteering
+
 ## USD generation
 
 In addition to the *concert_complete* example configuration that is available "out of the box", 
@@ -199,7 +220,156 @@ ros2 topic pub -r 10 /omnisteering/cmd_vel geometry_msgs/msg/Twist "{linear: {x:
 ros2 topic pub --once /omnisteering/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}"
 ```
 
-### 6. Optional GUI server
+### 6. CartesIO arm IK
+
+The validated CartesIO path is ROS-side, not the private xbot2 RT plugin path.
+In other words:
+
+- keep `xbot2-core` running with `ModularBot_isaac_cartesio.yaml`
+- launch `cartesian_interface_ros` as a separate ROS2 node
+- let xbot2's `ros2_control` bridge forward the solved arm commands to Isaac
+
+Why this route:
+
+- the old `albero_cartesio_rt` plugin path requires
+  `libxbotctrl_albero_cartesio_rt.so`
+- that library is not present in the current `concert-xbot2` image
+- its recipes pull private repos that are not accessible in this environment
+
+#### Build `concert_cartesio` once
+
+Preferred path in this workspace: use the existing Forest recipe for
+`iit-concert-ros-pkg`. This was validated on 2026-04-17 and it does reach
+`concert_cartesio` because the recipe explicitly lists it in the `cmakelists`
+section.
+
+```bash
+docker compose exec concert-xbot2 bash -lc '
+  source /opt/ros/jazzy/setup.bash &&
+  source /opt/xbot/setup.sh &&
+  source /home/user/xbot2_ws/setup.bash &&
+  cd /home/user/xbot2_ws &&
+  forest grow iit-concert-ros-pkg --no-deps --force-reconfigure -j 4
+'
+```
+
+Notes:
+
+- the tested Forest command used the workspace default build type
+  `RelWithDebInfo`
+- if you want a strict Release build through Forest, use:
+
+```bash
+forest grow iit-concert-ros-pkg --no-deps --force-reconfigure -j 4 -t Release
+```
+
+Focused fallback: build only `concert_cartesio` with an explicit base-path.
+This is still useful when you want to touch only the nested CartesIO package
+without rebuilding the other `iit-concert-ros-pkg` subprojects:
+
+```bash
+docker compose exec concert-xbot2 bash -lc '
+  source /opt/ros/jazzy/setup.bash &&
+  source /opt/xbot/setup.sh &&
+  source /home/user/xbot2_ws/setup.bash &&
+  cd /home/user/xbot2_ws &&
+  colcon build \
+    --base-paths src/iit-concert-ros-pkg/concert_cartesio \
+    --packages-select concert_cartesio \
+    --cmake-args -DCMAKE_BUILD_TYPE=Release
+'
+```
+
+#### Terminal 2: start xbot2 with the CartesIO-friendly profile
+
+```bash
+xbot2-core -C ModularBot_isaac_cartesio.yaml -H isaac
+```
+
+This profile intentionally keeps the stable Isaac plugins:
+
+- `homing`
+- `ros2_io`
+- `ros2_control`
+- `omnisteering`
+
+and does **not** try to load the unavailable private impedance plugin.
+
+#### Terminal 3: launch the ROS-side CartesIO server
+
+```bash
+docker compose exec concert-xbot2 bash
+source /opt/ros/jazzy/setup.bash
+source /home/user/xbot2_ws/install/setup.bash
+ros2 launch concert_cartesio concert_isaac_cartesio.launch.py markers:=false
+```
+
+Expected success lines include:
+
+```text
+[ok  ] Successfully added Cartesian task with
+   BASE LINK:   base_link
+   DISTAL LINK: ee_E
+[ok  ] Successfully added postural task 'Postural'
+[ok  ] Loaded solver 'OpenSot'
+[info] ros_server_node: started looping @100.0 Hz
+```
+
+#### Send a TCP goal
+
+Goal 1:
+
+```bash
+ros2 topic pub --once /cartesian/tcp/reference geometry_msgs/msg/PoseStamped \
+  "{header: {frame_id: base_link},
+    pose: {position: {x: 0.55, y: 0.00, z: 0.55},
+           orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+```
+
+Goal 2:
+
+```bash
+ros2 topic pub --once /cartesian/tcp/reference geometry_msgs/msg/PoseStamped \
+  "{header: {frame_id: base_link},
+    pose: {position: {x: 0.50, y: 0.10, z: 0.50},
+           orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+```
+
+#### Verify that the goal was accepted
+
+```bash
+ros2 topic echo --once /cartesian/tcp/current_reference
+ros2 topic echo --once /xbotcore/joint_states
+```
+
+On the validated run from 2026-04-17:
+
+- Goal 1 moved the arm joints by up to `3.05 rad`
+- Goal 2 moved the arm joints by up to `1.22 rad`
+- `/cartesian/tcp/current_reference` matched the commanded poses exactly
+
+So the tested path is:
+
+```text
+CartesIO -> ros2_control -> xbot2 -> Isaac
+```
+
+#### CartesIO topics and services
+
+```bash
+ros2 topic list | grep /cartesian
+ros2 service list | grep /cartesian
+```
+
+Important interfaces:
+
+- `/cartesian/tcp/reference`
+- `/cartesian/tcp/current_reference`
+- `/cartesian/tcp/task_error`
+- `/cartesian/tcp/set_active`
+- `/cartesian/tcp/set_lambda`
+
+### 7. Optional GUI server
 
 In another shell attached to the running `concert-xbot2` container, start the
 backend:
@@ -249,6 +419,21 @@ docker compose run --rm concert-xbot2
 
 Do not delete `/tmp/.xbot2_isaac/xbot2_isaac_server.sock` while Isaac is still running.
 
+If CartesIO is waiting forever for the URDF or xbot2 hangs without reaching
+`started running`, the most common cause is a stale or dead Isaac socket. A
+clean recovery is:
+
+```bash
+# host
+rm -f /tmp/.xbot2_isaac/xbot2_isaac_server.sock.client.*
+
+# isaac-sim container
+rm -f /tmp/.xbot2_isaac/xbot2_isaac_server.sock /tmp/.xbot2_isaac/xbot2_isaac_server.sock.client.*
+```
+
+Then relaunch Isaac first, wait for the server socket to come back, and only
+after that restart `xbot2-core`.
+
 ## 11. Minimal isolation profile
 
 If you want to isolate model loading and the Isaac HAL path without ROS2
@@ -267,3 +452,6 @@ The deployment flow is working if all of the following are true:
 - `/xbotcore/joint_states` is published
 - `/xbotcore/homing/switch` works
 - `/omnisteering/cmd_vel` moves the robot in Isaac
+- `ros2 launch concert_cartesio concert_isaac_cartesio.launch.py markers:=false` reaches `ros_server_node: started looping`
+- `/cartesian/tcp/current_reference` matches commanded goals
+- arm joints `J1_E..J6_E` change after a CartesIO goal is sent

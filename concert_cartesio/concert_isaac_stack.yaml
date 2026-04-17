@@ -1,0 +1,52 @@
+# CartesIO problem description for Concert in Isaac Lab.
+#
+# Architecture (mirrors kyon_cartesio/config/kyon_stack.yaml):
+#   - omnisteering controller in xbot2 already drives wheel_A..D from cmd_vel,
+#     so the IK stack must NOT fight it. Steering/rolling tasks are dropped.
+#   - chain_E (arm joints J1_E..J6_E ending at ee_E) is solved here.
+#   - mobile_base Cartesian task is kept as a low-priority anchor so the IK
+#     does not drift the floating base; weight kept low.
+#
+# This file is loaded by concert_isaac_cartesio.launch.py via the
+# cartesian/problem_description ROS parameter. The ros_server_node from
+# cartesian_interface_ros consumes it.
+
+solver_options:
+  regularization: 1e-4
+  back_end: osqp
+
+stack:
+  - [ee]
+  - [postural]
+
+constraints:
+  - joint_limits
+  - velocity_limits
+
+ee:
+  type: Cartesian
+  name: tcp
+  distal_link: ee_E
+  base_link: base_link
+  lambda: 0.1
+  indices: [0, 1, 2, 3, 4, 5]
+
+postural:
+  type: Postural
+  lambda: 0.01
+  weight: 0.001
+  disabled_joints:
+    - J1_A
+    - J_wheel_A
+    - J1_B
+    - J_wheel_B
+    - J1_C
+    - J_wheel_C
+    - J1_D
+    - J_wheel_D
+
+joint_limits:
+  type: JointLimits
+
+velocity_limits:
+  type: VelocityLimits

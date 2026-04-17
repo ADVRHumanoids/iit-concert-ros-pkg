@@ -1,0 +1,80 @@
+# Isaac xbot2 profile that pairs with the ROS-side CartesIO bringup.
+#
+# Usage:
+#   Terminal 2 (xbot2 container):
+#     xbot2-core -C ModularBot_isaac_cartesio.yaml -H isaac
+#   Terminal 3 (xbot2 container, after xbot2 is up):
+#     ros2 launch concert_cartesio concert_isaac_cartesio.launch.py
+#
+# History:
+#   The previous version of this file tried to load the xbot2 RT plugin
+#   `albero_cartesio_rt` for arm impedance control. That plugin lives in
+#   advrhumanoids/albero_plugins (private) and is NOT in the concert-xbot2
+#   image — load fails with:
+#     XBot::LibNotFound: libxbotctrl_albero_cartesio_rt.so
+#   This profile drops the broken `cartesio_imp` plugin and follows the
+#   kyon_cartesio pattern instead: the public `cartesian_interface_ros`
+#   `ros_server_node` runs as a separate ROS2 node and posts joint commands
+#   through xbot2's `ros2_control` bridge.
+#
+# Net effect: this file is currently identical in behavior to
+# ModularBot_isaac.yaml. It is kept as a distinct profile so the cartesio
+# bringup has its own launch label, and so the impedance plugin can be
+# re-enabled here later (single-line addition) once the private albero
+# library is built into the image.
+
+XBotInterface:
+    urdf: ros2 run xbot2_ros topic_echo /robot_description
+    srdf: ros2 run xbot2_ros topic_echo /robot_description_semantic
+
+ModelInterface:
+    model_type: pin
+
+xbotcore_device_configs:
+    isaac: $PWD/../hal/ModularBot_isaac.yaml
+
+xbotcore_threads:
+    rt_main:  {sched: fifo, prio: 60, period: 0.001}
+    nrt_main: {sched: other, prio: 0, period: 0.005}
+
+xbotcore_plugins:
+    homing:
+        thread: rt_main
+        type: homing
+        params:
+            time:
+                type: double
+                value: 5.0
+
+    ros_io: {thread: nrt_main, type: ros2_io}
+    ros_control: {thread: nrt_main, type: ros2_control, params: {autostart: true}}
+
+    omnisteering:
+        thread: nrt_main
+        type: omnisteering_controller_plugin
+        params:
+            wheel_names: [wheel_A, wheel_B, wheel_C, wheel_D]
+            wheel_radius: [0.16, 0.16, 0.16, 0.16]
+            vel_offset_gain: 1.0
+
+    # cartesio_imp:
+    #   DISABLED. Requires the private albero_cartesio_rt plugin.
+    #   Re-enable once the recipe is built into the image:
+    #     thread: rt_main
+    #     type: albero_cartesio_rt
+    #     params:
+    #         enabled_chains: { value: [chain_E], type: vector<string> }
+    #         problem_description:
+    #             value: $(ros2 pkg prefix --share concert_config)/ModularBot_impedance_config.yaml
+    #             type: file
+    #         solver: { value: AlberoImpedance, type: string }
+    #         enable_feedback: { value: true, type: bool }
+    #         fc_map: { value: {low: 0.9, high: 0.95}, type: map<double> }
+    #         use_payload_estimator: { value: false, type: bool }
+    #         payload_estimator_link: { value: ee_E, type: string }
+
+xbotcore_param:
+    /xbot/hal/joint_safety/filter_autostart: {value: true, type: bool}
+    /xbot/hal/joint_safety/filter_cutoff_hz: {value: 2.0, type: double}
+    /xbot/hal/enable_safety: {value: false, type: bool}
+    /xbot/trigger_safety_on_shutdown: {value: false, type: bool}

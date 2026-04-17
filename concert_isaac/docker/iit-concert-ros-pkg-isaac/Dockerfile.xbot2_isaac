@@ -28,6 +28,15 @@ RUN source /opt/ros/jazzy/setup.bash && \
     source /opt/xbot/setup.sh && \
     source /home/user/xbot2_ws/setup.bash && \
     source /home/user/env/bin/activate && \
+    pip install \
+      future \
+      anytree \
+      apscheduler \
+      defusedxml \
+      flask \
+      gunicorn \
+      rospkg \
+      "pin==2.7.0" && \
     cd /home/user/xbot2_ws && \
     forest grow iit-dagana-ros-pkg -j 20 --clone-depth 1 -v && \
     source /opt/ros/jazzy/setup.bash && \
@@ -37,17 +46,17 @@ RUN source /opt/ros/jazzy/setup.bash && \
 
 USER root
 
-RUN cat <<'EOF' >/etc/profile.d/concert_xbot2_env.sh
-source /opt/ros/jazzy/setup.bash
-source /opt/xbot/setup.sh
-if [ -f /home/user/xbot2_ws/setup.bash ]; then
-    source /home/user/xbot2_ws/setup.bash
-fi
-if [ -f /home/user/env/bin/activate ]; then
-    source /home/user/env/bin/activate
-fi
-export PYTHONPATH="/home/user/xbot2_ws/src/modular/src${PYTHONPATH:+:${PYTHONPATH}}"
-EOF
+RUN printf '%s\n' \
+    'source /opt/ros/jazzy/setup.bash' \
+    'source /opt/xbot/setup.sh' \
+    'if [ -f /home/user/xbot2_ws/setup.bash ]; then' \
+    '    source /home/user/xbot2_ws/setup.bash' \
+    'fi' \
+    'if [ -f /home/user/env/bin/activate ]; then' \
+    '    source /home/user/env/bin/activate' \
+    'fi' \
+    'export PYTHONPATH="/home/user/xbot2_ws/src/modular/src${PYTHONPATH:+:${PYTHONPATH}}"' \
+    >/etc/profile.d/concert_xbot2_env.sh
 
 RUN printf '\nsource /etc/profile.d/concert_xbot2_env.sh\n' >> /root/.bashrc && \
     printf '\nsource /etc/profile.d/concert_xbot2_env.sh\n' >> /home/user/.bashrc

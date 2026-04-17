@@ -74,7 +74,6 @@ from isaaclab.utils import configclass
 
 import numpy as np
 from isaacsim.core.utils.extensions import enable_extension
-from isaacsim.sensors.rtx import LidarRtx
 
 import socket
 import yaml
@@ -101,6 +100,9 @@ from isaaclab.sensors.camera import Camera, CameraCfg
 
 # Enable the ROS 2 bridge extension so the publish writers are available.
 enable_extension("isaacsim.ros2.bridge")
+enable_extension("isaacsim.sensors.rtx")
+
+from isaacsim.sensors.rtx import LidarRtx
 
 ##
 # Import Concert config
@@ -111,7 +113,7 @@ PYTHON_SRC_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "python", 
 if PYTHON_SRC_DIR not in sys.path:
     sys.path.insert(0, PYTHON_SRC_DIR)
 
-from concert_isaac.assets.concert_complete_play import (CONCERT_CFG_PLAY,
+from concert_isaac.assets.concert_play import (CONCERT_CFG_PLAY,
                     _CONCERT_URDF,
                     _CONCERT_SRDF)  # noqa: E402
 
@@ -206,63 +208,6 @@ def setup_ros2_description_publishers():
     # Keep the node alive so transient-local subscribers can receive the retained message.
     # We return the node; caller must not destroy it.
     return node
-
-
-def spawn_usd_object(
-    usd_path: str,
-    prim_path: str,
-    position: tuple[float, float, float] = (0.0, 0.0, 0.0),
-    orientation_wxyz: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0),
-    scale: tuple[float, float, float] = (1.0, 1.0, 1.0),
-    static: bool = True,
-) -> None:
-    """Spawn a USD asset on the stage at the given pose.
-
-    Args:
-        usd_path:          Absolute path or Nucleus URL to the .usd / .usda / .usdz file.
-        prim_path:         Desired USD stage path for the spawned prim, e.g.
-                           "/World/my_object".
-        position:          (x, y, z) translation in metres.
-        orientation_wxyz:  Quaternion (w, x, y, z) for the initial orientation.
-        scale:             (sx, sy, sz) uniform or non-uniform scale.
-        static:            If True the object is a rigid body with collision but no
-                           dynamics (collides with the floor, cannot be pushed).
-                           If False a rigid-body API is applied so the object
-                           participates in physics simulation.
-    """
-    from pxr import Gf, UsdGeom, UsdPhysics
-
-    cfg = sim_utils.UsdFileCfg(
-        usd_path=usd_path,
-        scale=scale,
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            rigid_body_enabled=not static,
-            disable_gravity=False,
-        ) if not static else None,
-        collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
-        mass_props=sim_utils.MassPropertiesCfg(mass=1.0) if not static else None,
-    )
-
-    # Spawn onto the stage
-    prim = cfg.func(prim_path, cfg)
-
-    # Apply translation and orientation via XformCommonAPI
-    stage = sim_utils.SimulationContext.instance().stage if sim_utils.SimulationContext.instance() else None
-    if stage is None:
-        import omni.usd
-        stage = omni.usd.get_context().get_stage()
-
-    xform_prim = UsdGeom.Xformable(stage.GetPrimAtPath(prim_path))
-    xform_api = UsdGeom.XformCommonAPI(xform_prim)
-    x, y, z = position
-    w, qx, qy, qz = orientation_wxyz
-    xform_api.SetTranslate(Gf.Vec3d(x, y, z))
-    xform_api.SetRotate(Gf.Quatf(w, qx, qy, qz), UsdGeom.XformCommonAPI.RotationOrderXYZ)
-    sx, sy, sz = scale
-    xform_api.SetScale(Gf.Vec3f(sx, sy, sz))
-
-    kind = "static" if static else "dynamic"
-    print(f"[Concert] Spawned {kind} object '{prim_path}'  pos={position}  from {usd_path}")
 
 
 def setup_rgbd_camera(scene: InteractiveScene):
@@ -552,19 +497,6 @@ def main():
     # Design scene
     scene_cfg = ConcertSceneCfg(num_envs=1, env_spacing=2.0)
     scene = InteractiveScene(scene_cfg)
-
-    # Spawn any additional USD objects that are not part of the scene config
-    import concert_isaac.assets 
-    assets_path = os.path.dirname(concert_isaac.assets.__file__)
-    metal_tube_usd = os.path.join(assets_path, "metal_tube_configurable.usda")
-    spawn_usd_object(
-        usd_path=metal_tube_usd,
-        prim_path="/World/metal_tube",
-        position=(2.0, 0.0, 1.0),
-        orientation_wxyz=(1.0, 0.0, 0.0, 0.0),
-        scale=(1.0, 1.0, 1.0),
-        static=True,
-    )
 
     # Setup sensors — must happen before sim.reset() so the prim exists on stage
     lidar = setup_sensors(sim, scene)
