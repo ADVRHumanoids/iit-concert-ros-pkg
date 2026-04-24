@@ -49,6 +49,7 @@ services:
     working_dir: /home/user/xbot2_ws/src/iit-concert-ros-pkg/concert_config/xbot2
     network_mode: host
     privileged: true
+    ipc: host
     stdin_open: true
     tty: true
     restart: always

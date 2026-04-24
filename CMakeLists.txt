@@ -11,5 +11,6 @@ add_subdirectory(concert_demo)
 add_subdirectory(concert_examples)
 add_subdirectory(concert_cartesio)
 add_subdirectory(concert_odometry_ros2)
+add_subdirectory(concert_isaac)
 
 enable_testing()

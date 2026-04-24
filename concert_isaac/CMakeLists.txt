@@ -7,6 +7,17 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 
+install(PROGRAMS
+  scripts/acea_pipe_junction_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME acea_pipe_junction_node
+)
+
+install(DIRECTORY docs
+  DESTINATION share/${PROJECT_NAME}
+  OPTIONAL
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

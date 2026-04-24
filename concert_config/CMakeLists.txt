@@ -17,6 +17,12 @@ install(TARGETS robot_description_publisher
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  ../concert_isaac/scripts/acea_pipe_junction_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME acea_pipe_junction_node
+)
+
 install(DIRECTORY docker gui hal joint_config launch xbot2
   DESTINATION share/${PROJECT_NAME}/
 )
