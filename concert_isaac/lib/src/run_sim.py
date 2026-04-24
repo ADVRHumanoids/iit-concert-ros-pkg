@@ -18,6 +18,7 @@ Usage (inside isaac-sim container):
 import argparse
 import os
 import sys
+from typing import Any
 
 # NOTE: we need to launch this script inside an env tweaked for ros2 jazzy
 # CycloneDDS:
@@ -46,12 +47,93 @@ parser.add_argument(
     help="Use the pre-trained checkpoint from Nucleus.",
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
+parser.add_argument(
+    "--xbot2-cartesio-mode",
+    action="store_true",
+    default=False,
+    help=(
+        "Minimal Isaac bringup for the validated lab stack: keep the robot/socket server "
+        "alive for xbot2 + CartesIO, but skip Isaac-side ROS2 publishers and RTX lidar."
+    ),
+)
+parser.add_argument(
+    "--disable-ros2-bridge",
+    action="store_true",
+    default=False,
+    help="Skip Isaac ROS2 bridge extension startup.",
+)
+parser.add_argument(
+    "--disable-lidar",
+    action="store_true",
+    default=False,
+    help="Skip RTX lidar creation and publishing.",
+)
+parser.add_argument(
+    "--disable-rgbd-publishers",
+    action="store_true",
+    default=False,
+    help="Skip ROS2 RGBD publisher setup for the base camera.",
+)
+parser.add_argument(
+    "--disable-description-publishers",
+    action="store_true",
+    default=False,
+    help="Skip Isaac-side robot_description publishers; xbot2 can publish them instead.",
+)
+parser.add_argument(
+    "--position-targets-only",
+    action="store_true",
+    default=False,
+    help=(
+        "Apply only joint position targets from xbot2 control messages and zero out "
+        "velocity/effort targets. Useful for passive-tool CartesIO pose export."
+    ),
+)
+parser.add_argument(
+    "--live-debug-cameras",
+    action="store_true",
+    default=False,
+    help="Enable deterministic live validation cameras and on-demand scene snapshots.",
+)
+parser.add_argument(
+    "--live-debug-markers",
+    action="store_true",
+    default=False,
+    help="Render live-debug markers in validation snapshots only.",
+)
+parser.add_argument(
+    "--live-debug-dir",
+    type=str,
+    default="/tmp/.xbot2_isaac/live_debug",
+    help="Directory where Isaac writes live debug images on snapshot requests.",
+)
+parser.add_argument(
+    "--live-debug-request-path",
+    type=str,
+    default="/tmp/.xbot2_isaac/live_debug_request.json",
+    help="Shared JSON request file used to ask Isaac for live debug snapshots.",
+)
+parser.add_argument(
+    "--telemetry-json",
+    type=str,
+    default="/tmp/.xbot2_isaac/live_tracking_state.json",
+    help="Shared JSON telemetry file written by Isaac during live tracking tests.",
+)
 
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
 
 if args_cli.video:
     args_cli.enable_cameras = True
+if args_cli.live_debug_cameras:
+    args_cli.enable_cameras = True
+
+if args_cli.xbot2_cartesio_mode:
+    args_cli.disable_ros2_bridge = True
+    args_cli.disable_lidar = True
+    args_cli.disable_rgbd_publishers = True
+    args_cli.disable_description_publishers = True
+    args_cli.position_targets_only = True
 
 sys.argv = [sys.argv[0]] + hydra_args
 
@@ -61,8 +143,11 @@ simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
+import json
+import math
 import torch
 import time
+from pathlib import Path
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
@@ -80,6 +165,7 @@ import yaml
 
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.sensors.camera import Camera, CameraCfg
+from PIL import Image
 # import omni.client
 
 # def _list_usd_recursive(base_url):
@@ -98,11 +184,27 @@ from isaaclab.sensors.camera import Camera, CameraCfg
 # _list_usd_recursive(f"{ISAAC_NUCLEUS_DIR}/Environments")
 # exit(0)
 
-# Enable the ROS 2 bridge extension so the publish writers are available.
-enable_extension("isaacsim.ros2.bridge")
-enable_extension("isaacsim.sensors.rtx")
+def _configure_optional_extensions():
+    """Start only the Isaac extensions needed by the requested mode."""
+    if not args_cli.disable_ros2_bridge:
+        enable_extension("isaacsim.ros2.bridge")
+        print("[Concert] Isaac ROS2 bridge enabled.")
+    else:
+        print("[Concert] Isaac ROS2 bridge disabled.")
 
-from isaacsim.sensors.rtx import LidarRtx
+    if not args_cli.disable_lidar:
+        enable_extension("isaacsim.sensors.rtx")
+        print("[Concert] Isaac RTX sensor extension enabled.")
+    else:
+        print("[Concert] Isaac RTX sensor extension disabled.")
+
+
+_configure_optional_extensions()
+
+if not args_cli.disable_lidar:
+    from isaacsim.sensors.rtx import LidarRtx
+else:
+    LidarRtx = Any
 
 ##
 # Import Concert config
@@ -310,7 +412,381 @@ def setup_sensors(sim: SimulationContext, scene: InteractiveScene):
 
     return lidar
 
-def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, lidar: LidarRtx):
+
+LIVE_DEBUG_SCENE_ROOT = "/World/live_debug"
+LIVE_DEBUG_VIEWPOINTS = [
+    {
+        "name": "fullscene",
+        "eye": (-2.8, -3.2, 3.0),
+        "target": (1.25, 0.0, 0.95),
+        "intent": "wide full-scene validation view",
+    },
+    {
+        "name": "side",
+        "eye": (0.9, -4.6, 2.4),
+        "target": (1.05, 0.0, 0.95),
+        "intent": "side/3-4 validation view",
+    },
+]
+LIVE_DEBUG_MARKER_STYLES = {
+    "tool_target_world": {"color": (0.95, 0.25, 0.20), "height": 0.12},
+    "pregrasp_world": {"color": (0.20, 0.85, 0.30), "height": 0.10},
+    "payload_center_world": {"color": (0.20, 0.45, 0.95), "height": 0.10},
+    "ee_pose_world": {"color": (0.95, 0.80, 0.15), "height": 0.14},
+}
+
+
+def look_at_ros_quat(eye, target, world_up=(0.0, 0.0, 1.0)):
+    eye = np.array(eye, dtype=float)
+    target = np.array(target, dtype=float)
+    up = np.array(world_up, dtype=float)
+
+    forward = target - eye
+    forward /= np.linalg.norm(forward)
+
+    right = np.cross(forward, up)
+    right /= np.linalg.norm(right)
+
+    down = np.cross(forward, right)
+    rot_m = np.column_stack([right, down, forward])
+
+    trace = float(rot_m[0, 0] + rot_m[1, 1] + rot_m[2, 2])
+    if trace > 0.0:
+        s = 2.0 * math.sqrt(1.0 + trace)
+        w = 0.25 * s
+        x = (rot_m[2, 1] - rot_m[1, 2]) / s
+        y = (rot_m[0, 2] - rot_m[2, 0]) / s
+        z = (rot_m[1, 0] - rot_m[0, 1]) / s
+    elif rot_m[0, 0] > rot_m[1, 1] and rot_m[0, 0] > rot_m[2, 2]:
+        s = 2.0 * math.sqrt(1.0 + rot_m[0, 0] - rot_m[1, 1] - rot_m[2, 2])
+        w = (rot_m[2, 1] - rot_m[1, 2]) / s
+        x = 0.25 * s
+        y = (rot_m[0, 1] + rot_m[1, 0]) / s
+        z = (rot_m[0, 2] + rot_m[2, 0]) / s
+    elif rot_m[1, 1] > rot_m[2, 2]:
+        s = 2.0 * math.sqrt(1.0 + rot_m[1, 1] - rot_m[0, 0] - rot_m[2, 2])
+        w = (rot_m[0, 2] - rot_m[2, 0]) / s
+        x = (rot_m[0, 1] + rot_m[1, 0]) / s
+        y = 0.25 * s
+        z = (rot_m[1, 2] + rot_m[2, 1]) / s
+    else:
+        s = 2.0 * math.sqrt(1.0 + rot_m[2, 2] - rot_m[0, 0] - rot_m[1, 1])
+        w = (rot_m[1, 0] - rot_m[0, 1]) / s
+        x = (rot_m[0, 2] + rot_m[2, 0]) / s
+        y = (rot_m[1, 2] + rot_m[2, 1]) / s
+        z = 0.25 * s
+    return (float(w), float(x), float(y), float(z))
+
+
+def _round_xyz(values, ndigits=6):
+    return [round(float(v), ndigits) for v in values]
+
+
+def _yaw_quat_deg(yaw_deg: float) -> tuple[float, float, float, float]:
+    half = math.radians(float(yaw_deg)) * 0.5
+    return (math.cos(half), 0.0, 0.0, math.sin(half))
+
+
+def _find_ee_prim_path(stage):
+    direct_path = "/World/envs/env_0/Robot/ee_E"
+    if stage.GetPrimAtPath(direct_path).IsValid():
+        return direct_path
+
+    candidates = []
+    for prim in stage.Traverse():
+        prim_path = str(prim.GetPath())
+        if prim.GetName() == "ee_E" and prim_path.startswith("/World/envs"):
+            candidates.append(prim_path)
+    if not candidates:
+        return None
+    return sorted(candidates, key=len)[0]
+
+
+def _get_stage_ee_world():
+    try:
+        from pxr import UsdGeom
+    except Exception:
+        return None
+
+    stage = sim_utils.get_current_stage()
+    ee_prim_path = _find_ee_prim_path(stage)
+    if ee_prim_path is None:
+        return None
+
+    try:
+        prim = stage.GetPrimAtPath(ee_prim_path)
+        if not prim.IsValid():
+            return None
+        xform_cache = UsdGeom.XformCache()
+        world_tf = xform_cache.GetLocalToWorldTransform(prim)
+        translation = world_tf.ExtractTranslation()
+        return [float(translation[0]), float(translation[1]), float(translation[2])]
+    except Exception:
+        return None
+
+
+def _save_rgb_tensor(tensor, path: Path):
+    image = tensor[0].cpu().numpy()
+    if image.dtype in (np.float32, np.float64):
+        image = np.clip(image, 0.0, 1.0)
+        image = (image * 255.0).astype(np.uint8)
+    else:
+        image = image.astype(np.uint8)
+    Image.fromarray(image[:, :, :3]).save(str(path))
+
+
+def _update_named_cameras(camera_records, dt):
+    for record in camera_records:
+        record["camera"].update(dt=dt)
+
+
+def _capture_named_rgbs(camera_records):
+    return {
+        record["name"]: record["camera"].data.output["rgb"]
+        for record in camera_records
+    }
+
+
+def setup_live_debug_cameras() -> list[dict[str, Any]]:
+    if not args_cli.live_debug_cameras:
+        return []
+
+    camera_records: list[dict[str, Any]] = []
+    for vp in LIVE_DEBUG_VIEWPOINTS:
+        quat = look_at_ros_quat(vp["eye"], vp["target"])
+        camera_cfg = CameraCfg(
+            prim_path=f"/World/live_debug_camera_{vp['name']}",
+            update_period=0.033,
+            height=360,
+            width=480,
+            data_types=["rgb"],
+            spawn=sim_utils.PinholeCameraCfg(
+                focal_length=18.0,
+                horizontal_aperture=36.0,
+                clipping_range=(0.1, 60.0),
+            ),
+            offset=CameraCfg.OffsetCfg(
+                pos=vp["eye"],
+                rot=quat,
+                convention="ros",
+            ),
+        )
+        camera_records.append(
+            {
+                "name": vp["name"],
+                "intent": vp["intent"],
+                "eye": _round_xyz(vp["eye"]),
+                "target": _round_xyz(vp["target"]),
+                "camera": Camera(camera_cfg),
+            }
+        )
+
+    debug_names = ", ".join(record["name"] for record in camera_records)
+    print(f"[Concert] Live debug cameras enabled: {debug_names}")
+    return camera_records
+
+
+def initialize_live_debug_cameras(camera_records):
+    for record in camera_records:
+        camera = record["camera"]
+        camera._initialize_callback(None)
+
+
+def _clear_live_debug_geometry():
+    stage = sim_utils.get_current_stage()
+    live_root = stage.GetPrimAtPath(LIVE_DEBUG_SCENE_ROOT)
+    if live_root.IsValid():
+        stage.RemovePrim(LIVE_DEBUG_SCENE_ROOT)
+
+
+def _author_live_debug_markers(marker_targets: dict[str, list[float]]):
+    marker_root = f"{LIVE_DEBUG_SCENE_ROOT}/markers"
+    post_width = 0.028
+    for name, style in LIVE_DEBUG_MARKER_STYLES.items():
+        point = marker_targets.get(name)
+        if not isinstance(point, list) or len(point) != 3:
+            continue
+        height = float(style["height"])
+        marker_cfg = sim_utils.CuboidCfg(
+            size=(post_width, post_width, height),
+            visual_material=sim_utils.PreviewSurfaceCfg(
+                diffuse_color=style["color"],
+                roughness=0.20,
+            ),
+        )
+        marker_cfg.func(
+            f"{marker_root}/{name}",
+            marker_cfg,
+            translation=(float(point[0]), float(point[1]), float(point[2]) + height / 2.0),
+        )
+
+
+def _author_live_debug_scene(request: dict, ee_pose_world: list[float] | None):
+    _clear_live_debug_geometry()
+
+    scene_cfg = request.get("scene", {})
+    door_cfg = scene_cfg.get("door", {})
+    payload_cfg = scene_cfg.get("payload", {})
+
+    door_width = float(door_cfg.get("door_width", 0.9))
+    door_distance = float(door_cfg.get("door_distance", 2.0))
+    door_height = float(door_cfg.get("door_height", 2.1))
+    wall_t = float(door_cfg.get("wall_thickness", 0.10))
+    room_height = float(door_cfg.get("room_height", 2.5))
+    wall_extend = float(door_cfg.get("wall_extend", 3.5))
+    half_door = door_width / 2.0
+
+    wall_cfg = sim_utils.CuboidCfg(
+        size=(wall_t, wall_extend, room_height),
+        visual_material=sim_utils.PreviewSurfaceCfg(
+            diffuse_color=(0.82, 0.82, 0.84),
+            roughness=0.82,
+        ),
+    )
+    wall_cfg.func(
+        f"{LIVE_DEBUG_SCENE_ROOT}/door/left_wall",
+        wall_cfg,
+        translation=(door_distance, -(half_door + wall_extend / 2.0), room_height / 2.0),
+    )
+    wall_cfg.func(
+        f"{LIVE_DEBUG_SCENE_ROOT}/door/right_wall",
+        wall_cfg,
+        translation=(door_distance, (half_door + wall_extend / 2.0), room_height / 2.0),
+    )
+
+    top_cfg = sim_utils.CuboidCfg(
+        size=(wall_t, door_width, max(0.12, room_height - door_height)),
+        visual_material=sim_utils.PreviewSurfaceCfg(
+            diffuse_color=(0.82, 0.82, 0.84),
+            roughness=0.82,
+        ),
+    )
+    top_cfg.func(
+        f"{LIVE_DEBUG_SCENE_ROOT}/door/top_wall",
+        top_cfg,
+        translation=(door_distance, 0.0, door_height + max(0.12, room_height - door_height) / 2.0),
+    )
+
+    if payload_cfg:
+        center_world = payload_cfg.get("center_world", [0.85, 0.0, 0.75])
+        size_xyz = payload_cfg.get("size_xyz", [1.2, 0.05, 0.05])
+        beam_quat = payload_cfg.get("beam_quat_wxyz")
+        if beam_quat is None:
+            beam_quat = _yaw_quat_deg(float(payload_cfg.get("beam_yaw_deg", 0.0)))
+
+        payload_scene_cfg = sim_utils.CuboidCfg(
+            size=tuple(float(v) for v in size_xyz),
+            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                rigid_body_enabled=True,
+                disable_gravity=True,
+                kinematic_enabled=True,
+                enable_gyroscopic_forces=False,
+            ),
+            visual_material=sim_utils.PreviewSurfaceCfg(
+                diffuse_color=(0.67, 0.52, 0.30),
+                roughness=0.75,
+            ),
+        )
+        payload_scene_cfg.func(
+            f"{LIVE_DEBUG_SCENE_ROOT}/payload",
+            payload_scene_cfg,
+            translation=tuple(float(v) for v in center_world),
+            orientation=tuple(float(v) for v in beam_quat),
+        )
+
+    if args_cli.live_debug_markers:
+        marker_targets = dict(request.get("markers", {}))
+        if ee_pose_world is not None:
+            marker_targets["ee_pose_world"] = _round_xyz(ee_pose_world)
+        _author_live_debug_markers(marker_targets)
+
+
+def _load_snapshot_request() -> dict | None:
+    request_path = Path(args_cli.live_debug_request_path)
+    if not request_path.exists():
+        return None
+    try:
+        request = json.loads(request_path.read_text())
+    finally:
+        try:
+            request_path.unlink()
+        except FileNotFoundError:
+            pass
+    return request
+
+
+def _write_capture_summary(request: dict, output_dir: Path, saved_paths: dict[str, str], ee_pose_world):
+    summary = {
+        "request_id": request.get("request_id"),
+        "prefix": request.get("prefix"),
+        "saved_images": saved_paths,
+        "camera_names": [record["name"] for record in LIVE_DEBUG_VIEWPOINTS],
+        "markers_enabled": bool(args_cli.live_debug_markers),
+        "ee_pose_world": None if ee_pose_world is None else _round_xyz(ee_pose_world),
+    }
+    summary_path = output_dir / f"live_debug_{request.get('prefix', 'snapshot')}_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n")
+
+
+def _service_live_debug_request(request: dict, camera_records, ee_pose_world):
+    output_dir = Path(request.get("output_dir", args_cli.live_debug_dir)).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    _author_live_debug_scene(request, ee_pose_world)
+    _update_named_cameras(camera_records, 0.033)
+    rgb_frames = _capture_named_rgbs(camera_records)
+
+    prefix = request.get("prefix", "snapshot")
+    saved_paths = {}
+    for name, tensor in rgb_frames.items():
+        filename = f"live_debug_{prefix}_{name}_rgb.png"
+        out_path = output_dir / filename
+        _save_rgb_tensor(tensor, out_path)
+        saved_paths[name] = str(out_path)
+
+    _write_capture_summary(request, output_dir, saved_paths, ee_pose_world)
+    print(f"[Concert] Saved live debug snapshot '{prefix}' to {output_dir}")
+
+
+def _write_live_tracking_telemetry(
+    output_path: Path,
+    robot: Articulation,
+    client_sockets: set,
+    time_sim: float,
+    control_count: int,
+    last_control_wall_time: float | None,
+):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    ee_stage_world = _get_stage_ee_world()
+    payload_prim_path = f"{LIVE_DEBUG_SCENE_ROOT}/payload"
+    stage = sim_utils.get_current_stage()
+    telemetry = {
+        "time_sim_s": round(float(time_sim), 6),
+        "control_count": int(control_count),
+        "client_count": len(client_sockets),
+        "last_control_age_s": (
+            None
+            if last_control_wall_time is None
+            else round(max(0.0, time.time() - last_control_wall_time), 6)
+        ),
+        "joint_names": list(robot.joint_names),
+        "joint_position": [float(v) for v in robot.data.joint_pos.cpu().numpy().flatten().tolist()],
+        "joint_velocity": [float(v) for v in robot.data.joint_vel.cpu().numpy().flatten().tolist()],
+        "joint_position_target": [float(v) for v in robot.data.joint_pos_target.cpu().numpy().flatten().tolist()],
+        "joint_velocity_target": [float(v) for v in robot.data.joint_vel_target.cpu().numpy().flatten().tolist()],
+        "ee_stage_world": ee_stage_world,
+        "live_debug_scene_present": bool(stage.GetPrimAtPath(LIVE_DEBUG_SCENE_ROOT).IsValid()),
+        "payload_present": bool(stage.GetPrimAtPath(payload_prim_path).IsValid()),
+    }
+    output_path.write_text(json.dumps(telemetry, indent=2) + "\n")
+
+def run_simulator(
+    sim: sim_utils.SimulationContext,
+    scene: InteractiveScene,
+    lidar: LidarRtx | None,
+    live_debug_cameras: list[dict[str, Any]],
+):
     """Runs the simulation loop with xbot2 socket communication."""
 
     # Extract scene entities
@@ -347,11 +823,22 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, lid
     print(f"[Concert] Num joints: {robot.num_joints}")
 
     client_sockets = set()
+    telemetry_path = Path(args_cli.telemetry_json)
+    telemetry_period_s = 0.25
+    telemetry_last_write = 0.0
+    pending_snapshot = None
+    control_count = 0
+    last_control_wall_time = None
 
     # Set initial joint positions
     qinit = robot.data.default_joint_pos.clone()
     robot.write_joint_position_to_sim(qinit)
     robot.set_joint_position_target(qinit)
+    if args_cli.position_targets_only:
+        zero_targets = torch.zeros_like(qinit)
+        robot.set_joint_velocity_target(zero_targets)
+        robot.set_joint_effort_target(zero_targets)
+        print("[Concert] Position-target-only control enabled.")
     print(f'[Concert] Initial joint positions: {qinit.cpu().numpy().flatten().tolist()}')
 
     while simulation_app.is_running():
@@ -386,6 +873,9 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, lid
                 sock.sendto(state_msg.encode(), cli_addr)
             except ConnectionRefusedError:
                 print(f"[Concert] Client at {cli_addr} disconnected.")
+                sockets_to_remove.append(cli_addr)
+            except OSError as e:
+                print(f"[Concert] Client at {cli_addr} dropped after socket error: {e}")
                 sockets_to_remove.append(cli_addr)
             except Exception as e:
                 print(f"[Concert] Error sending state to {cli_addr}: {e}")
@@ -423,10 +913,17 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, lid
             elif data_type == 'control':
                 joint_pos_def = torch.tensor(data['q'], device=robot.device).unsqueeze(0)
                 robot.set_joint_position_target(joint_pos_def)
-                joint_vel_def = torch.tensor(data['dq'], device=robot.device).unsqueeze(0)
-                robot.set_joint_velocity_target(joint_vel_def)
-                joint_effort_def = torch.tensor(data['tau'], device=robot.device).unsqueeze(0)
-                robot.set_joint_effort_target(joint_effort_def)
+                control_count += 1
+                last_control_wall_time = time.time()
+                if args_cli.position_targets_only:
+                    zero_targets = torch.zeros_like(joint_pos_def)
+                    robot.set_joint_velocity_target(zero_targets)
+                    robot.set_joint_effort_target(zero_targets)
+                else:
+                    joint_vel_def = torch.tensor(data['dq'], device=robot.device).unsqueeze(0)
+                    robot.set_joint_velocity_target(joint_vel_def)
+                    joint_effort_def = torch.tensor(data['tau'], device=robot.device).unsqueeze(0)
+                    robot.set_joint_effort_target(joint_effort_def)
 
             else:
                 print(f"[Concert] Unknown data type received: {data_type}")
@@ -442,6 +939,45 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, lid
         rtf_steps += 1
         count += 1
         scene.update(sim_dt)
+        if live_debug_cameras:
+            _update_named_cameras(live_debug_cameras, sim_dt)
+
+        if live_debug_cameras and pending_snapshot is None:
+            request = _load_snapshot_request()
+            if request is not None:
+                pending_snapshot = {
+                    "request": request,
+                    "warmup_frames": int(request.get("warmup_frames", 3)),
+                }
+                ee_stage_world = _get_stage_ee_world()
+                _author_live_debug_scene(request, ee_stage_world)
+                print(
+                    f"[Concert] Live debug request queued: prefix={request.get('prefix', 'snapshot')} "
+                    f"warmup_frames={pending_snapshot['warmup_frames']}"
+                )
+
+        if live_debug_cameras and pending_snapshot is not None:
+            pending_snapshot["warmup_frames"] -= 1
+            if pending_snapshot["warmup_frames"] <= 0:
+                ee_stage_world = _get_stage_ee_world()
+                _service_live_debug_request(
+                    pending_snapshot["request"],
+                    live_debug_cameras,
+                    ee_stage_world,
+                )
+                pending_snapshot = None
+
+        now = time.time()
+        if now - telemetry_last_write >= telemetry_period_s:
+            _write_live_tracking_telemetry(
+                telemetry_path,
+                robot,
+                client_sockets,
+                time_sim,
+                control_count,
+                last_control_wall_time,
+            )
+            telemetry_last_write = now
 
         if 0 > 1:
             # Keep the viewport camera behind and above the robot base, tracking its heading.
@@ -496,31 +1032,51 @@ def main():
 
     # Design scene
     scene_cfg = ConcertSceneCfg(num_envs=1, env_spacing=2.0)
+    if args_cli.disable_rgbd_publishers and not getattr(args_cli, "enable_cameras", False):
+        scene_cfg.rgbd_camera = None
+    if args_cli.xbot2_cartesio_mode:
+        scene_cfg.robot.spawn.articulation_props.fix_root_link = True
+        print("[Concert] xbot2-cartesio-mode: fixing robot root link for stable base_link frame.")
     scene = InteractiveScene(scene_cfg)
 
     # Setup sensors — must happen before sim.reset() so the prim exists on stage
-    lidar = setup_sensors(sim, scene)
+    lidar = None
+    if args_cli.disable_lidar:
+        print("[Concert] Skipping RTX lidar setup.")
+    else:
+        lidar = setup_sensors(sim, scene)
 
     # Publish robot_description and robot_description_semantic with transient-local QoS
     # so any subscriber (e.g. robot_state_publisher, MoveIt) that connects later still
     # receives them. The returned node must stay alive for the duration of the process.
-    description_node = setup_ros2_description_publishers()
+    description_node = None
+    if args_cli.disable_description_publishers:
+        print("[Concert] Skipping Isaac-side robot_description publishers.")
+    else:
+        description_node = setup_ros2_description_publishers()
 
     # Play the simulator
     sim.reset()
+    live_debug_cameras = setup_live_debug_cameras()
+    if live_debug_cameras:
+        initialize_live_debug_cameras(live_debug_cameras)
 
     # initialize() wires up the per-frame data-acquisition callback; must be
     # called after sim.reset() so the physics/render context is fully ready.
-    lidar.initialize()
+    if lidar is not None:
+        lidar.initialize()
 
     # Wire up the RGBD camera ROS 2 OmniGraph pipeline.
     # Must be called after sim.reset() so the camera prim is on stage.
-    setup_rgbd_camera(scene)
+    if args_cli.disable_rgbd_publishers:
+        print("[Concert] Skipping RGBD ROS2 publishers.")
+    elif "rgbd_camera" in scene.keys():
+        setup_rgbd_camera(scene)
 
     print("[Concert] Setup complete. Waiting for xbot2 connection...")
 
     # Run the simulator
-    run_simulator(sim, scene, lidar)
+    run_simulator(sim, scene, lidar, live_debug_cameras)
 
 
 if __name__ == "__main__":

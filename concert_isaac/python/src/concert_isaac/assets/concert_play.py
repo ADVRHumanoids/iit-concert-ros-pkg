@@ -69,8 +69,8 @@ CONCERT_CFG_PLAY = ArticulationCfg(
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
-            solver_position_iteration_count=4,
-            solver_velocity_iteration_count=0,
+            solver_position_iteration_count=12,
+            solver_velocity_iteration_count=6,
             sleep_threshold=0.005,
             stabilization_threshold=0.001,
             fix_root_link=False,
@@ -134,31 +134,36 @@ CONCERT_CFG_PLAY = ArticulationCfg(
         ),
         # Arm large motors (J1_E, J2_E, J4_E)
         # From URDF: effort=460 Nm, velocity=2.14 rad/s
+        # For xbot2/CartesIO playback we bias the simulator toward tighter
+        # position tracking than the earlier defaults while keeping bounded
+        # effort and non-zero damping.
         "motor_arm_large": DCMotorCfg(
             joint_names_expr=["J[124]_E"],
             saturation_effort=460,
             effort_limit=460,
             velocity_limit=2.14,
-            stiffness=500,
-            damping=20,
+            stiffness=1600,
+            damping=100,
             armature=0.472,
-            friction=2.75,
-            dynamic_friction=2.75,
-            viscous_friction=5.1,
+            friction=1.5,
+            dynamic_friction=1.5,
+            viscous_friction=3.0,
         ),
         # Arm medium motors (J3_E, J5_E, J6_E)
         # From URDF: effort=314 Nm, velocity=2.85 rad/s
+        # Same rationale as above: slightly stiffer, less sticky playback for
+        # pose-export and static grasp benchmark generation.
         "motor_arm_medium": DCMotorCfg(
             joint_names_expr=["J[356]_E"],
             saturation_effort=314,
             effort_limit=314,
             velocity_limit=2.85,
-            stiffness=500,
-            damping=20,
+            stiffness=900,
+            damping=50,
             armature=0.382,
-            friction=3.2,
-            dynamic_friction=3.2,
-            viscous_friction=6.75,
+            friction=1.8,
+            dynamic_friction=1.8,
+            viscous_friction=3.5,
         ),
     },
 )

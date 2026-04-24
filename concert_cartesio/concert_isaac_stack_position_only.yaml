@@ -1,0 +1,47 @@
+# CartesIO problem description for GateFit arm-pose export in Isaac Lab.
+#
+# This variant is intentionally position-only for the ee_E tool point.
+# The benchmark payload carrier is a passive end-effector: for pose-library
+# export we care about placing ee_E at the grasp-band center without
+# inventing a hard orientation requirement that the benchmark geometry does
+# not otherwise define.
+
+solver_options:
+  regularization: 1e-4
+  back_end: osqp
+
+stack:
+  - [ee]
+  - [postural]
+
+constraints:
+  - joint_limits
+  - velocity_limits
+
+ee:
+  type: Cartesian
+  name: tcp
+  distal_link: ee_E
+  base_link: base_link
+  lambda: 0.1
+  indices: [0, 1, 2]
+
+postural:
+  type: Postural
+  lambda: 0.01
+  weight: 0.001
+  disabled_joints:
+    - J1_A
+    - J_wheel_A
+    - J1_B
+    - J_wheel_B
+    - J1_C
+    - J_wheel_C
+    - J1_D
+    - J_wheel_D
+
+joint_limits:
+  type: JointLimits
+
+velocity_limits:
+  type: VelocityLimits

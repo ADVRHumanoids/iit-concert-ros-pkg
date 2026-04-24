@@ -24,6 +24,7 @@ endif()
 
 # Install scripts
 file(GLOB SCRIPTS "scripts/*")
+list(FILTER SCRIPTS EXCLUDE REGEX ".*/__pycache__$")
 if(SCRIPTS)
   install(PROGRAMS ${SCRIPTS}
     DESTINATION lib/${PROJECT_NAME}

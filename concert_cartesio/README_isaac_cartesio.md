@@ -44,6 +44,16 @@ isaaclab -p /workspace/concert_isaac/run_sim.py --enable_cameras --headless
 
 Wait for: `[Concert] Setup complete. Waiting for xbot2 connection...`
 
+For arm-pose export only, the lighter Isaac bringup is now preferable:
+
+```bash
+isaaclab -p /workspace/iit-concert-ros-pkg/concert_isaac/lib/src/run_sim.py \
+  --headless --xbot2-cartesio-mode
+```
+
+That mode keeps the robot + xbot2 socket server alive but skips Isaac-side ROS2
+publishers and RTX lidar, which are not needed for CartesIO pose export.
+
 ### Terminal 2 — XBot2 (concert-xbot2 container)
 
 ```bash
@@ -112,6 +122,31 @@ After successful load:
 - `/cartesian/tcp/set_base_link`, `/set_lambda`, `/set_active`, ...
 
 Use `ros2 service list | grep cartesian` for the full map.
+
+## Position-only export for GateFit arm poses
+
+For the passive `ee_E` benchmark carrier we only need the tool point to reach
+the beam grip-band center. A dedicated position-only CartesIO problem file is
+committed as:
+
+```bash
+concert_cartesio/concert_isaac_stack_position_only.yaml
+```
+
+It uses `indices: [0, 1, 2]` on the `ee_E` Cartesian task so the exported
+joint references are not biased by an arbitrary absolute orientation request.
+
+To regenerate `configs/arm_poses.json` from the live lab stack:
+
+```bash
+python3 scripts/export_arm_poses_with_cartesio.py
+```
+
+That host-side exporter:
+- restarts CartesIO in position-only mode,
+- samples `/xbotcore/joint_states.position_reference`,
+- validates the pose back against the committed URDF FK, and
+- rewrites `configs/arm_poses.json`.
 
 ## Known failure modes
 
