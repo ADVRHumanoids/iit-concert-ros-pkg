@@ -1,1 +1,0 @@
-"""Concert Isaac integration package."""

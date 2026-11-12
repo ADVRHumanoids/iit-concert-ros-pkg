@@ -14,7 +14,7 @@ Canonical deployment assets under `iit-concert-ros-pkg`:
 
 - `concert_usd/usd/concert_complete/concert_complete.usd`
 - `concert_urdf/urdf/concert_complete.urdf`
-- `concert_srdf/srdf/ModularBot.srdf`
+- `concert_srdf/srdf/concert_complete.srdf`
 
 Runtime note:
 

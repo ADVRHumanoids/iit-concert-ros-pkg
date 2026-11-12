@@ -1,0 +1,15 @@
+# HAL configuration for Concert robot in Isaac Lab simulation.
+#
+# Uses the zmq_hal device from xbot2_zmq to communicate with the
+# Isaac Lab simulation server (run_sim.py) via UNIX DGRAM socket.
+#
+# Joint names are discovered dynamically from Isaac — no need to list them here.
+# The zmq_hal plugin sends a 'discovery' message and Isaac replies with
+# the full list of joint names from the robot articulation.
+#
+# Socket path: /tmp/.xbot2_isaac/xbot2_isaac_server.sock (default)
+#
+xbotcore_devices:
+    zmq_hal:
+        names: []
+        thread: rt_main

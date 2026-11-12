@@ -33,7 +33,7 @@ done
 required_assets=(
     /workspace/iit-concert-ros-pkg/concert_usd/usd/concert_complete/concert_complete.usd
     /workspace/iit-concert-ros-pkg/concert_urdf/urdf/concert_complete.urdf
-    /workspace/iit-concert-ros-pkg/concert_srdf/srdf/ModularBot.srdf
+    /workspace/iit-concert-ros-pkg/concert_srdf/srdf/concert_complete.srdf
 )
 
 for asset in "${required_assets[@]}"; do

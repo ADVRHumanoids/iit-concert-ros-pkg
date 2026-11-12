@@ -29,7 +29,7 @@ mkdir -p "${output_dir}"
 for required_file in \
     "${usd_root}/usd/concert_complete/concert_complete.usd" \
     "${urdf_root}/urdf/concert_complete.urdf" \
-    "${srdf_root}/srdf/ModularBot.srdf"; do
+    "${srdf_root}/srdf/concert_complete.srdf"; do
     if [ ! -f "${required_file}" ]; then
         echo "[concert-xbot2] missing committed deployment asset: ${required_file}" >&2
         exit 1
