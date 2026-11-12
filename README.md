@@ -12,7 +12,6 @@ The Isaac-side layout now follows the Kyon pattern:
 - `concert_urdf`
 - `concert_srdf`
 - `concert_usd`
-- `concert_config`
 
 The top-level mirrors under `concert_robot/concert_isaac` and
 `concert_robot/concert_config` are kept temporarily as legacy backups only.
@@ -26,7 +25,6 @@ This metapackage contains the following subpackages:
 - **concert_urdf** - URDF/Xacro robot description
 - **concert_srdf** - SRDF semantic robot description
 - **concert_gazebo** - Gazebo simulation configurations
-- **concert_config** - Simulation-specific XBot2 configuration
 - **concert_cartesio** - CartesI/O configuration
 - **concert_examples** - Modular robot descriptions and examples
 - **concert_odometry_ros2** - Odometry (base estimation) configuration
@@ -51,13 +49,6 @@ colcon build
 ros2 launch concert_gazebo concert.launch.py
 ```
 
-### XBot2 with Simulation
-
-```bash
-source ~/ros2_ws/src/iit-concert-ros-pkg/concert_config/setup.sh
-xbot2-core --hw sim
-```
-
 ### CartesI/O
 
 ```bash
@@ -77,13 +68,8 @@ Contains the SRDF files for MoveIt and XBot2 semantic description (joint groups,
 ### concert_gazebo
 
 Gazebo simulation world files, model database, and launch files.
-
-### concert_config
-
-Simulation-specific XBot2 configuration files including:
-- HAL configuration for Gazebo
-- Joint configurations
-- GUI and launcher configurations
+`config/` holds the XBot2 configuration used in simulation (`modular.yaml`,
+HAL for Gazebo and dummy, GUI server configuration).
 
 ### concert_cartesio
 
