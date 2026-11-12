@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<robot name="ModularBot">
+<robot name="modularbot">
    <group name="chain_A">
       <chain base_link="mobile_base" tip_link="wheel_A"/>
    </group>
