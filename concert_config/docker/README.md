@@ -9,11 +9,7 @@ the shared docker-base build system.
 ```
 docker/
 ├── build-concert.bash        # Main build script wrapper
-├── concert-config_ros1.env   # ROS1 environment configuration
 ├── concert-config_ros2.env   # ROS2 environment configuration
-├── concert-focal-ros1/       # ROS1 compose and setup
-│   ├── compose.yml
-│   └── setup.sh
 └── concert-noble-ros2/       # ROS2 compose and setup
     ├── compose.yml
     └── setup.sh
@@ -37,17 +33,10 @@ git submodule update --init --recursive
 ./build-concert.bash --pull    # Pull from registry
 ```
 
-### ROS1
-```bash
-./build-concert.bash ros1           # Build locally
-./build-concert.bash ros1 --push    # Build and push to registry
-./build-concert.bash ros1 --pull    # Pull from registry
-```
-
 ## How It Works
 
 1. `build-concert.bash` is a thin wrapper that:
-   - Loads the appropriate environment file (concert-config_ros1.env or concert-config_ros2.env)
+   - Loads the environment file concert-config_ros2.env
    - Sets Concert-specific packages and configuration
    - Delegates to `docker-base/robot-template/_build/robot-{distro}-{ros}/build.bash`
 
@@ -62,11 +51,6 @@ git submodule update --init --recursive
 - `hhcmhub/concert-noble-ros2-base:latest` - Development environment
 - `hhcmhub/concert-noble-ros2-xeno-v5:latest` - Real-time with Xenomai
 - `hhcmhub/concert-noble-ros2-sim:latest` - Simulation with MuJoCo
-
-### ROS1 (Focal)
-- `hhcmhub/concert-focal-ros1-base:latest` - Development environment
-- `hhcmhub/concert-focal-ros1-xeno-v5:latest` - Real-time with Xenomai
-- `hhcmhub/concert-focal-ros1-locomotion:latest` - Locomotion stack
 
 ## Running Containers
 

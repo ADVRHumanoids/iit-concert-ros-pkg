@@ -1,18 +1,18 @@
 XBotInterface:
-    urdf_path: $(rospack find robots)/robots/concert/urdf/ModularBot.urdf
-    srdf_path: $(rospack find robots)/robots/concert/srdf/ModularBot.srdf
-    joint_map_path: $(rospack find robots)/robots/concert/joint_map/ModularBot_joint_map.yaml
+    urdf_path: $(ros2 pkg prefix --share robots)/robots/concert/urdf/ModularBot.urdf
+    srdf_path: $(ros2 pkg prefix --share robots)/robots/concert/srdf/ModularBot.srdf
+    joint_map_path: $(ros2 pkg prefix --share robots)/robots/concert/joint_map/ModularBot_joint_map.yaml
 
 ModelInterface:
-    model_type: RBDL
+    model_type: pin
     is_model_floating_base: true
 
 
 xbotcore_device_configs:
-    sim: $(rospack find modularbot)/config/hal/ModularBot_gz.yaml
-    dummy: $(rospack find modularbot)/config/hal/ModularBot_dummy.yaml
-    ec_imp: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
-    ec_idle: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+    sim: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_gz.yaml
+    dummy: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_dummy.yaml
+    ec_imp: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_idle: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_ec_all.yaml
 
 
 xbotcore_threads:
@@ -33,11 +33,11 @@ xbotcore_plugins:
     
     ros_io:
         thread: nrt_main
-        type: ros_io
+        type: ros2_io
     
     ros_ctrl:
         thread: nrt_main
-        type: ros_control
+        type: ros2_control
     
     homing:
         thread: rt_main
@@ -59,7 +59,7 @@ xbotcore_plugins:
     #     params:
     #         references_mode: {value: continuous, type: string} # discrete - continuous
     #         task_solver_type: {value: OpenSot, type: string}
-    #         task_path: {value: $(rospack find robots)/robots/concert/task/concert_stack_whole_body_control.yaml, type: file}
+    #         task_path: {value: $(ros2 pkg prefix --share robots)/robots/concert/task/concert_stack_whole_body_control.yaml, type: file}
     #         task_path_config : {value: /home/embedded/xbot2_ws/src/concert_config/ModularBot_proximity.yaml, type: file} # if u want to pass a different model to cartesio
     #         task_solver_control_loop: {value: 0.005, type: double}
     #         robot_chains_name: {value: [base_control,arm_control], type: vector<string>}
@@ -119,9 +119,9 @@ xbotcore_plugins:
         thread: nrt_control
         type: joint_impedance_controlH
         params:
-            robot_task_config_file: {value: $(rospack find robots)/robots/concert/configs/vim/robotTaskSettings/robot_task_config_concert.yaml, type: file}
-            im_engine_config_file: {value: $(rospack find robots)/robots/concert/configs/vim/vimSettings/vim_config_concert.yaml, type: file}
-            plugin_settings_config_file: {value: $(rospack find robots)/robots/concert/configs/vim/pluginSettings/plugin_config_concert.yaml, type: file}
+            robot_task_config_file: {value: $(ros2 pkg prefix --share robots)/robots/concert/configs/vim/robotTaskSettings/robot_task_config_concert.yaml, type: file}
+            im_engine_config_file: {value: $(ros2 pkg prefix --share robots)/robots/concert/configs/vim/vimSettings/vim_config_concert.yaml, type: file}
+            plugin_settings_config_file: {value: $(ros2 pkg prefix --share robots)/robots/concert/configs/vim/pluginSettings/plugin_config_concert.yaml, type: file}
             target_topic: {value: /target_pose, type: string}
             robot_topic: {value: /robot_feedback, type: string}
             contact_detection_topic: {value: /contact_notifier, type: string}

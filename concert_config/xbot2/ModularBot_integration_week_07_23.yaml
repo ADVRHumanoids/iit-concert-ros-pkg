@@ -1,19 +1,19 @@
 XBotInterface:
-    urdf_path: $(rospack find modularbot)/urdf/ModularBot.urdf
-    srdf_path: $(rospack find modularbot)/srdf/ModularBot.srdf
-    joint_map_path: $(rospack find modularbot)/joint_map/ModularBot_joint_map.yaml
+    urdf_path: $(ros2 pkg prefix --share modularbot)/urdf/ModularBot.urdf
+    srdf_path: $(ros2 pkg prefix --share modularbot)/srdf/ModularBot.srdf
+    joint_map_path: $(ros2 pkg prefix --share modularbot)/joint_map/ModularBot_joint_map.yaml
 
 ModelInterface:
-    model_type: RBDL
+    model_type: pin
     is_model_floating_base: true
 
 
 xbotcore_device_configs:
-    sim: $(rospack find modularbot)/config/hal/ModularBot_gz.yaml
-    dummy: $(rospack find modularbot)/config/hal/ModularBot_dummy.yaml
-    ec_imp: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
-    ec_idle: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
-    ec_pos: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+    sim: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_gz.yaml
+    dummy: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_dummy.yaml
+    ec_imp: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_idle: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_pos: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_ec_all.yaml
 
 
 # threads
@@ -25,8 +25,8 @@ xbotcore_threads:
 # plugins
 xbotcore_plugins:
 
-    ros_io: {thread: nrt_main, type: ros_io, params: {publish_tf: {type: bool, value: true}}}
-    ros_control: {thread: nrt_main, type: ros_control, params: {autostart: {type: bool, value: true}}}
+    ros_io: {thread: nrt_main, type: ros2_io, params: {publish_tf: {type: bool, value: true}}}
+    ros_control: {thread: nrt_main, type: ros2_control, params: {autostart: {type: bool, value: true}}}
     ec_ros: {thread: nrt_main, type: ec_ros}
 
     gcomp_example:
@@ -113,9 +113,9 @@ xbotcore_plugins:
         thread: nrt_control
         type: joint_impedance_controlH
         params:
-            robot_task_config_file: {value: $(rospack find robots)/concert/configs/vim/robotTaskSettings/robot_task_config_concert_arm_drilling.yaml, type: file}
-            im_engine_config_file: {value: $(rospack find robots)/concert/configs/vim/vimSettings/vim_config_concert_arm_6_dof.yaml, type: file}
-            plugin_settings_config_file: {value: $(rospack find robots)/concert/configs/vim/pluginSettings/plugin_config_concert.yaml, type: file}
+            robot_task_config_file: {value: $(ros2 pkg prefix --share robots)/concert/configs/vim/robotTaskSettings/robot_task_config_concert_arm_drilling.yaml, type: file}
+            im_engine_config_file: {value: $(ros2 pkg prefix --share robots)/concert/configs/vim/vimSettings/vim_config_concert_arm_6_dof.yaml, type: file}
+            plugin_settings_config_file: {value: $(ros2 pkg prefix --share robots)/concert/configs/vim/pluginSettings/plugin_config_concert.yaml, type: file}
             xbot_old_version: {value: false, type: bool}
             model_wheels_names: {value: [J_wheel_A,J_wheel_B,J_wheel_C,J_wheel_D], type: vector<string>}
             target_topic: {value: /target_pose, type: string}

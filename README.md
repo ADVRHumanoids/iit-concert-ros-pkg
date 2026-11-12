@@ -27,18 +27,20 @@ This metapackage contains the following subpackages:
 - **concert_srdf** - SRDF semantic robot description
 - **concert_gazebo** - Gazebo simulation configurations
 - **concert_config** - Simulation-specific XBot2 configuration
-- **concert_cartesio_config** - CartesI/O configuration
-- **concert_demo** - Demo applications and examples
+- **concert_cartesio** - CartesI/O configuration
+- **concert_examples** - Modular robot descriptions and examples
+- **concert_odometry_ros2** - Odometry (base estimation) configuration
+- **concert_tests** - Test scripts
 
 ## Installation
 
-Clone into your catkin workspace:
+Clone into your ROS 2 workspace and build with colcon:
 
 ```bash
-cd ~/catkin_ws/src
-git clone https://github.com/ADVRHumanoids/iit-concert-ros-pkg.git
+cd ~/ros2_ws/src
+git clone --recursive https://github.com/ADVRHumanoids/iit-concert-ros-pkg.git
 cd ..
-catkin build
+colcon build
 ```
 
 ## Usage
@@ -46,20 +48,20 @@ catkin build
 ### Launch Simulation
 
 ```bash
-roslaunch concert_gazebo concert_gazebo.launch
+ros2 launch concert_gazebo concert.launch.py
 ```
 
 ### XBot2 with Simulation
 
 ```bash
-source ~/catkin_ws/src/iit-concert-ros-pkg/concert_config/setup.sh
+source ~/ros2_ws/src/iit-concert-ros-pkg/concert_config/setup.sh
 xbot2-core --hw sim
 ```
 
 ### CartesI/O
 
 ```bash
-roslaunch concert_cartesio_config concert_cartesio.launch
+ros2 launch concert_cartesio concert.launch.py xbot:=true
 ```
 
 ## Packages
@@ -83,17 +85,17 @@ Simulation-specific XBot2 configuration files including:
 - Joint configurations
 - GUI and launcher configurations
 
-### concert_cartesio_config
+### concert_cartesio
 
 CartesI/O inverse kinematics configuration for Cartesian control.
 
-### concert_demo
+### concert_tests
 
-Demo applications showcasing robot capabilities.
+Test scripts, e.g. `ros2 run concert_tests repeatability.py`.
 
 ## Dependencies
 
-- ROS Noetic / ROS2 Humble
+- ROS 2 Jazzy
 - Gazebo
 - XBot2
 - CartesI/O

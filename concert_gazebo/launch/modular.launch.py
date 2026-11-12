@@ -1,8 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess, GroupAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, Command, TextSubstitution
-from launch.conditions import UnlessCondition
+from launch.substitutions import LaunchConfiguration, Command, PythonExpression
 from launch_ros.actions import Node
 import os
 from launch.conditions import IfCondition
@@ -34,13 +33,12 @@ def generate_launch_description():
     ]
 
 
-    # Construct `gz_args` with conditional '-r' based on `paused`
+    # Construct `gz_args`: -v if verbose, -s if no gui, -r unless paused
     gz_args = [
         LaunchConfiguration('world_file'),
-        TextSubstitution(text=' '),
-        TextSubstitution(text='-v ') if LaunchConfiguration('verbose') == 'true' else TextSubstitution(text=''),
-        TextSubstitution(text='-s ') if LaunchConfiguration('gui') == 'false' else TextSubstitution(text=''),
-        TextSubstitution(text='-r') if UnlessCondition(LaunchConfiguration('paused')) else TextSubstitution(text='')
+        PythonExpression(["' -v' if '", LaunchConfiguration('verbose'), "' == 'true' else ''"]),
+        PythonExpression(["' -s' if '", LaunchConfiguration('gui'), "' == 'false' else ''"]),
+        PythonExpression(["'' if '", LaunchConfiguration('paused'), "' == 'true' else ' -r'"]),
     ]
 
     # Robot description commands
@@ -93,7 +91,7 @@ def generate_launch_description():
     )
 
     # Gazebo group
-    gazebo_group = GroupAction([
+    gazebo_group = GroupAction(condition=IfCondition(LaunchConfiguration('gazebo')), actions=[
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(
                 get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')),

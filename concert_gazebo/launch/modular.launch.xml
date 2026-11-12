@@ -94,7 +94,7 @@
         <node pkg="ros_gz_bridge" exec="parameter_bridge" name="ros_gz_bridge" 
             args="/VLP16_lidar_back/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked 
                   /VLP16_lidar_front/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked 
-                  /clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock"/>
+                  /clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"/>
 
     </group>
 

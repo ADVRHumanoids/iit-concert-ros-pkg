@@ -19,28 +19,18 @@ finish() {
 
 usage() {
   cat <<'EOF'
-Usage: bashrc-setup-host.sh [--ros1 | --ros2]
+Usage: bashrc-setup-host.sh [--ros2]
 
-Adds (or updates) the Concert configuration section in ~/.bashrc so that the
-requested ROS version is exported before sourcing concert_config/setup.sh.
+Adds (or updates) the Concert configuration section in ~/.bashrc so that
+ROS_VERSION=ros2 is exported before sourcing concert_config/setup.sh.
 EOF
   finish 1
 }
 
-if [[ $# -eq 0 ]]; then
-  echo "ERROR: You must specify --ros1 or --ros2." >&2
-  usage
-fi
-
-ros_variant=""
+ros_variant="ros2"
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --ros1)
-      ros_variant="ros1"
-      shift
-      ;;
     --ros2)
-      ros_variant="ros2"
       shift
       ;;
     -h|--help)
@@ -52,11 +42,6 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
-if [[ -z "$ros_variant" ]]; then
-  echo "ERROR: Missing required flag --ros1 or --ros2." >&2
-  usage
-fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 SETUP_PATH="$SCRIPT_DIR/../setup.sh"

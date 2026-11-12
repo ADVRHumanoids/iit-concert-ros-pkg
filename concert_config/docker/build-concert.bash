@@ -8,19 +8,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 cd "$SCRIPT_DIR"
 
-# Determine which config to load based on argument or default to ROS2
-if [[ "$1" == "ros1" ]] || [[ "$1" == "--ros1" ]]; then
-    CONFIG_FILE="concert-config_ros1.env"
-    BUILD_DIR="../docker-base/robot-template/_build/robot-focal-ros1"
-    shift  # Remove the ros1 argument before passing to build.bash
-else
-    # Default to ROS2, but also handle explicit ros2 flag
-    if [[ "$1" == "ros2" ]] || [[ "$1" == "--ros2" ]]; then
-        shift  # Remove the ros2 argument
-    fi
-    CONFIG_FILE="concert-config_ros2.env"
-    BUILD_DIR="../docker-base/robot-template/_build/robot-noble-ros2"
+# Accept an explicit ros2 flag for backward compatibility
+if [[ "$1" == "ros2" ]] || [[ "$1" == "--ros2" ]]; then
+    shift
 fi
+CONFIG_FILE="concert-config_ros2.env"
+BUILD_DIR="../docker-base/robot-template/_build/robot-noble-ros2"
 
 # Check if docker-base submodule exists
 if [ ! -d "../docker-base" ]; then

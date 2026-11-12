@@ -53,19 +53,13 @@ concert_config/                          # Real robot configuration
 ├── docker/                              # Docker build and runtime configurations
 │   ├── build-concert.bash              # Robot-specific build wrapper script
 │   ├── bashrc-setup-host.sh            # Host environment setup script
-│   ├── concert-config_ros1.env         # ROS1 environment configuration
 │   ├── concert-config_ros2.env         # ROS2 environment configuration
-│   ├── concert-focal-ros1/             # ROS1 runtime compose configurations
-│   │   └── compose.yml
 │   └── concert-noble-ros2/             # ROS2 runtime compose configurations
 │       ├── compose.yml
 │       └── setup.sh                    # Container environment setup
 ├── docker-base/                         # Submodule: generalized xbot2_docker
 │   └── robot-template/                  # Generic robot build templates
 ├── gui/
-│   ├── ros1/
-│   │   ├── gui_server_config.yaml      # GUI server configuration (ROS1)
-│   │   └── concert_launcher_config.yaml # Process definitions (ROS1)
 │   └── ros2/
 │       ├── gui_server_config.yaml      # GUI server configuration (ROS2)
 │       └── concert_launcher_config.yaml # Process definitions (ROS2)
@@ -114,9 +108,7 @@ Run the host setup script to configure your `~/.bashrc`:
 
 ```bash
 cd docker
-./bashrc-setup-host.sh --ros2   # For ROS2 (Ubuntu Noble)
-# OR
-./bashrc-setup-host.sh --ros1   # For ROS1 (Ubuntu Focal)
+./bashrc-setup-host.sh --ros2   # ROS2 (Ubuntu Noble)
 ```
 
 Then apply the changes:
@@ -129,12 +121,8 @@ source ~/.bashrc
 ```bash
 cd docker
 
-# Build ROS2 images (default)
+# Build ROS2 images
 ./build-concert.bash
-
-# Or explicitly specify version
-./build-concert.bash ros2    # For ROS2
-./build-concert.bash ros1    # For ROS1
 
 # Additional options
 ./build-concert.bash --push  # Build and push to registry
@@ -303,20 +291,20 @@ The primary configuration file for `xbot2-core`:
 
 ```yaml
 XBotInterface:
-    urdf_path: $(rospack find modularbot)/urdf/ModularBot.urdf
-    srdf_path: $(rospack find modularbot)/srdf/ModularBot.srdf
-    joint_map_path: $(rospack find modularbot)/joint_map/ModularBot_joint_map.yaml
+    urdf_path: $(ros2 pkg prefix --share modularbot)/urdf/ModularBot.urdf
+    srdf_path: $(ros2 pkg prefix --share modularbot)/srdf/ModularBot.srdf
+    joint_map_path: $(ros2 pkg prefix --share modularbot)/joint_map/ModularBot_joint_map.yaml
 
 ModelInterface:
-    model_type: RBDL
+    model_type: pin
     is_model_floating_base: true
 
 xbotcore_device_configs:
-    sim: $(rospack find modularbot)/config/hal/ModularBot_gz.yaml
-    dummy: $(rospack find modularbot)/config/hal/ModularBot_dummy.yaml
-    ec_imp: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
-    ec_idle: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
-    ec_pos: $(rospack find modularbot)/config/hal/ModularBot_ec_all.yaml
+    sim: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_gz.yaml
+    dummy: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_dummy.yaml
+    ec_imp: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_idle: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_ec_all.yaml
+    ec_pos: $(ros2 pkg prefix --share modularbot)/config/hal/ModularBot_ec_all.yaml
 
 xbotcore_threads:
     rt_main:
@@ -331,10 +319,10 @@ xbotcore_threads:
 xbotcore_plugins:
     ros_io:
         thread: nrt_main
-        type: ros_io
+        type: ros2_io
     ros_ctrl:
         thread: nrt_main
-        type: ros_control
+        type: ros2_control
     homing:
         thread: rt_main
         type: homing
