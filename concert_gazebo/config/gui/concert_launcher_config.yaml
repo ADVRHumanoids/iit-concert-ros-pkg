@@ -1,0 +1,39 @@
+context:
+  session: concert_real
+  params:
+    hw_type: ec_idle
+  .defines:
+
+    - &embedded embedded@10.24.10.100
+    - &control concert@10.24.10.102
+    - &vision concert@10.24.10.101
+    - &docker-xeno concert-noble-ros2-xeno-dev-1
+    - &docker-dev concert-noble-ros2-dev-1
+
+ecat:
+  cmd: ecat_master
+  machine: *embedded
+  docker: *docker-xeno
+  
+xbot2:
+  cmd: xbot2-core --hw {hw_type}
+  machine: *embedded
+  ready_check: timeout 5 ros2 topic echo --once /xbotcore/joint_states
+  depends: []
+  docker: *docker-xeno
+  variants:
+    verbose:
+      cmd: "{cmd} -V"
+    ctrl:
+      - ec_idle:
+          params:
+            hw_type: ec_idle
+      - ec_pos:
+          params:
+            hw_type: ec_pos
+      - ec_imp:
+          params:
+            hw_type: ec_imp
+      - dummy:
+          params:
+            hw_type: dummy

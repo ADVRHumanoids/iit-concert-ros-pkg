@@ -14,7 +14,7 @@ def generate_launch_description():
         DeclareLaunchArgument('gazebo', default_value='true'),
         DeclareLaunchArgument('xbot2', default_value='true'),
         DeclareLaunchArgument('xbot2_gui', default_value='true'),
-        DeclareLaunchArgument('xbot2_config', default_value=os.path.join(get_package_share_directory('concert_config'), 'modular.yaml')),
+        DeclareLaunchArgument('xbot2_config', default_value=os.path.join(get_package_share_directory('concert_gazebo'), 'config', 'modular.yaml')),
         DeclareLaunchArgument('modular_description', default_value=os.path.join(get_package_share_directory('concert_examples'), 'concert_example.py')),
         DeclareLaunchArgument('realsense', default_value='false'),
         DeclareLaunchArgument('velodyne', default_value='false'),
@@ -80,8 +80,8 @@ def generate_launch_description():
 
     # Robot description publisher node
     description_publisher_node = Node(
-        package='concert_config',  # Replace with your package name
-        executable='robot_description_publisher',  # Replace with your node executable
+        package='xbot2_ros',
+        executable='robot_description_publisher',
         name='robot_description_publisher',
         parameters=[
             {'robot_description': robot_description_xbot},
@@ -169,7 +169,7 @@ def generate_launch_description():
     # Xbot2 GUI server
     xbot2_gui_server = ExecuteProcess(
         condition=IfCondition(LaunchConfiguration('xbot2_gui')),
-        cmd=['xbot2_gui_server', os.path.join(get_package_share_directory('concert_config'), 'gui', 'ros2', 'gui_server_config.yaml')],
+        cmd=['xbot2_gui_server', os.path.join(get_package_share_directory('concert_gazebo'), 'config', 'gui', 'gui_server_config.yaml')],
         output='log'
     )
 
