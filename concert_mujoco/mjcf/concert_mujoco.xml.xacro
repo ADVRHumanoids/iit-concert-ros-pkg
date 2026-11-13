@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<mujoco xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <!-- base_link height at spawn [m] -->
+    <xacro:arg name="spawn_z" default="1.0" />
+    <xacro:property name="SPAWN_Z" value="$(arg spawn_z)" />
+
+    <!-- Sensors MUST only be enabled when the URDF has their links: the launch enables
+         those it finds. Actuators, joint classes and initial pose come from robot_mjcf.py. -->
+    <xacro:arg name="imu" default="false" />
+    <xacro:arg name="velodyne" default="false" />
+    <xacro:arg name="realsense" default="false" />
+    <xacro:arg name="ultrasound" default="false" />
+
+    <xacro:include filename="$(find concert_mujoco)/mjcf/concert_options.xml.xacro" />
+    <xacro:if value="$(arg imu)">
+        <xacro:include filename="$(find concert_mujoco)/mjcf/concert_imu.xml.xacro" />
+    </xacro:if>
+    <xacro:include filename="$(find concert_mujoco)/mjcf/concert_sensors.xml.xacro" />
+
+</mujoco>

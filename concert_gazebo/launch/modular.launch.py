@@ -1,9 +1,9 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess, GroupAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, Command, TextSubstitution
-from launch.conditions import UnlessCondition
+from launch.substitutions import LaunchConfiguration, Command, PythonExpression
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 import os
 from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
@@ -15,10 +15,11 @@ def generate_launch_description():
         DeclareLaunchArgument('gazebo', default_value='true'),
         DeclareLaunchArgument('xbot2', default_value='true'),
         DeclareLaunchArgument('xbot2_gui', default_value='true'),
-        DeclareLaunchArgument('xbot2_config', default_value=os.path.join(get_package_share_directory('concert_config'), 'modular.yaml')),
+        DeclareLaunchArgument('xbot2_config', default_value=os.path.join(get_package_share_directory('concert_gazebo'), 'config', 'modular.yaml')),
         DeclareLaunchArgument('modular_description', default_value=os.path.join(get_package_share_directory('concert_examples'), 'concert_example.py')),
         DeclareLaunchArgument('realsense', default_value='false'),
         DeclareLaunchArgument('velodyne', default_value='false'),
+        DeclareLaunchArgument('imu', default_value='true'),
         DeclareLaunchArgument('ultrasound', default_value='false'),
         DeclareLaunchArgument('use_gpu_ray', default_value='false'),
         DeclareLaunchArgument('paused', default_value='false'),
@@ -34,13 +35,12 @@ def generate_launch_description():
     ]
 
 
-    # Construct `gz_args` with conditional '-r' based on `paused`
+    # Construct `gz_args`: -v if verbose, -s if no gui, -r unless paused
     gz_args = [
         LaunchConfiguration('world_file'),
-        TextSubstitution(text=' '),
-        TextSubstitution(text='-v ') if LaunchConfiguration('verbose') == 'true' else TextSubstitution(text=''),
-        TextSubstitution(text='-s ') if LaunchConfiguration('gui') == 'false' else TextSubstitution(text=''),
-        TextSubstitution(text='-r') if UnlessCondition(LaunchConfiguration('paused')) else TextSubstitution(text='')
+        PythonExpression(["' -v' if '", LaunchConfiguration('verbose'), "' == 'true' else ''"]),
+        PythonExpression(["' -s' if '", LaunchConfiguration('gui'), "' == 'false' else ''"]),
+        PythonExpression(["'' if '", LaunchConfiguration('paused'), "' == 'true' else ' -r'"]),
     ]
 
     # Robot description commands
@@ -49,6 +49,7 @@ def generate_launch_description():
         ' -o urdf -a gazebo_urdf:=true floating_base:=true',
         ' realsense:=', LaunchConfiguration('realsense'),
         ' velodyne:=', LaunchConfiguration('velodyne'),
+        ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=', LaunchConfiguration('ultrasound'),
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot_gz'
@@ -61,6 +62,7 @@ def generate_launch_description():
         ' -o urdf -a gazebo_urdf:=false floating_base:=true',
         ' realsense:=', LaunchConfiguration('realsense'),
         ' velodyne:=', LaunchConfiguration('velodyne'),
+        ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=false',
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot'
@@ -73,6 +75,7 @@ def generate_launch_description():
         ' -o srdf -a gazebo_urdf:=false',
         ' realsense:=', LaunchConfiguration('realsense'),
         ' velodyne:=', LaunchConfiguration('velodyne'),
+        ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=false',
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot'
@@ -82,18 +85,18 @@ def generate_launch_description():
 
     # Robot description publisher node
     description_publisher_node = Node(
-        package='concert_config',  # Replace with your package name
-        executable='robot_description_publisher',  # Replace with your node executable
+        package='xbot2_ros',
+        executable='robot_description_publisher',
         name='robot_description_publisher',
         parameters=[
-            {'robot_description': robot_description_xbot},
-            {'robot_description_semantic': robot_description_semantic}
+            {'robot_description': ParameterValue(robot_description_xbot, value_type=str)},
+            {'robot_description_semantic': ParameterValue(robot_description_semantic, value_type=str)}
         ],
         output='screen'
     )
 
     # Gazebo group
-    gazebo_group = GroupAction([
+    gazebo_group = GroupAction(condition=IfCondition(LaunchConfiguration('gazebo')), actions=[
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(
                 get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')),
@@ -103,7 +106,7 @@ def generate_launch_description():
             package='ros_gz_sim',
             executable='create',
             name='urdf_spawner',
-            parameters=[{'string': robot_description_gz, 'z': 1.0}]
+            parameters=[{'string': ParameterValue(robot_description_gz, value_type=str), 'z': 1.0}]
         ),
         # Bridge for standard topics
         Node(
@@ -113,47 +116,42 @@ def generate_launch_description():
             arguments=[
                 # Clock
                 '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
-                # IMU
-                '/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
+                # IMU, on the gz topic of the vectornav_imu sensor
+                '/vectornav_imu_link@sensor_msgs/msg/Imu[gz.msgs.IMU',
                 # Velodyne LiDARs
                 '/VLP16_lidar_back/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
                 '/VLP16_lidar_front/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
             ],
+            remappings=[('/vectornav_imu_link', '/vectornav/imu')],
         ),
-        # Bridge for RealSense RGBD Cameras - Gazebo Harmonic rgbd_camera topics
-        # RGBD camera publishes to: /{topic}/image, /{topic}/depth_image, /{topic}/points
-        # Use image_bridge for RGB, parameter_bridge for depth
-        Node(
+        # RealSense D435 colour images (realsense_gazebo_description topics)
+        *[Node(
             package='ros_gz_image',
             executable='image_bridge',
-            name='d435i_front_color_bridge',
-            arguments=['/D435i_camera_front/image'],
-            remappings=[
-                ('/D435i_camera_front/image', '/D435i_camera_front/color/image_raw')
-            ],
-        ),
-        Node(
-            package='ros_gz_image',
-            executable='image_bridge',
-            name='d435i_back_color_bridge',
-            arguments=['/D435i_camera_back/image'],
-            remappings=[
-                ('/D435i_camera_back/image', '/D435i_camera_back/color/image_raw')
-            ],
-        ),
-        # Bridge for depth images using parameter_bridge
-        # Topics will be: /D435i_camera_front/depth_image, /D435i_camera_back/depth_image
+            name=f'{camera}_color_bridge',
+            arguments=[f'/{camera}/color/image_raw'],
+        ) for camera in ('D435_camera_front', 'D435_camera_back')],
+        # RealSense D435 depth, camera infos and clouds; Bosch USS5 ultrasound scans and clouds
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
-            name='ros_gz_rgbd_bridge',
+            name='ros_gz_sensors_bridge',
             arguments=[
-                # Depth images
-                '/D435i_camera_front/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
-                '/D435i_camera_back/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
-                # Point clouds
-                '/D435i_camera_front/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
-                '/D435i_camera_back/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+                topic
+                for camera in ('D435_camera_front', 'D435_camera_back')
+                for topic in (
+                    f'/{camera}/color/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+                    f'/{camera}/depth/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
+                    f'/{camera}/depth/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+                    f'/{camera}/depth/image_raw/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+                )
+            ] + [
+                topic
+                for name in ('fl_sag', 'fr_sag', 'rl_sag', 'rr_sag', 'fl_lat', 'fr_lat', 'rl_lat', 'rr_lat')
+                for topic in (
+                    f'/bosch_uss5/ultrasound_{name}/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+                    f'/bosch_uss5/ultrasound_{name}/scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+                )
             ],
         ),
     ])
@@ -171,7 +169,7 @@ def generate_launch_description():
     # Xbot2 GUI server
     xbot2_gui_server = ExecuteProcess(
         condition=IfCondition(LaunchConfiguration('xbot2_gui')),
-        cmd=['xbot2_gui_server', os.path.join(get_package_share_directory('concert_config'), 'gui', 'ros2', 'gui_server_config.yaml')],
+        cmd=['xbot2_gui_server', os.path.join(get_package_share_directory('concert_gazebo'), 'config', 'gui', 'gui_server_config.yaml')],
         output='log'
     )
 

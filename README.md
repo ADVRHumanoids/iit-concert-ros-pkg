@@ -9,10 +9,7 @@ The Isaac-side layout now follows the Kyon pattern:
   - `docker/iit-concert-ros-pkg-isaac`
   - `lib/src`
   - `python/src/concert_isaac`
-- `concert_urdf`
-- `concert_srdf`
 - `concert_usd`
-- `concert_config`
 
 The top-level mirrors under `concert_robot/concert_isaac` and
 `concert_robot/concert_config` are kept temporarily as legacy backups only.
@@ -23,22 +20,22 @@ ROS packages for the Concert robot simulation and demonstration.
 
 This metapackage contains the following subpackages:
 
-- **concert_urdf** - URDF/Xacro robot description
-- **concert_srdf** - SRDF semantic robot description
 - **concert_gazebo** - Gazebo simulation configurations
-- **concert_config** - Simulation-specific XBot2 configuration
-- **concert_cartesio_config** - CartesI/O configuration
-- **concert_demo** - Demo applications and examples
+- **concert_mujoco** - MuJoCo simulation through xbot2_mujoco
+- **concert_cartesio** - CartesI/O configuration
+- **concert_examples** - Modular robot descriptions and examples
+- **concert_odometry_ros2** - Odometry (base estimation) configuration
+- **concert_tests** - Test scripts
 
 ## Installation
 
-Clone into your catkin workspace:
+Clone into your ROS 2 workspace and build with colcon:
 
 ```bash
-cd ~/catkin_ws/src
-git clone https://github.com/ADVRHumanoids/iit-concert-ros-pkg.git
+cd ~/ros2_ws/src
+git clone --recursive https://github.com/ADVRHumanoids/iit-concert-ros-pkg.git
 cd ..
-catkin build
+colcon build
 ```
 
 ## Usage
@@ -46,54 +43,51 @@ catkin build
 ### Launch Simulation
 
 ```bash
-roslaunch concert_gazebo concert_gazebo.launch
-```
-
-### XBot2 with Simulation
-
-```bash
-source ~/catkin_ws/src/iit-concert-ros-pkg/concert_config/setup.sh
-xbot2-core --hw sim
+ros2 launch concert_gazebo concert.launch.py
 ```
 
 ### CartesI/O
 
 ```bash
-roslaunch concert_cartesio_config concert_cartesio.launch
+ros2 launch concert_cartesio concert.launch.py xbot:=true
 ```
 
 ## Packages
 
-### concert_urdf
-
-Contains the URDF/Xacro files describing the Concert robot's kinematics and visual/collision geometry.
-
-### concert_srdf
-
-Contains the SRDF files for MoveIt and XBot2 semantic description (joint groups, end-effectors, etc.).
-
 ### concert_gazebo
 
 Gazebo simulation world files, model database, and launch files.
+`config/` holds the XBot2 configuration used in simulation (`modular.yaml`,
+HAL for Gazebo and dummy, GUI server configuration).
 
-### concert_config
+### concert_mujoco
 
-Simulation-specific XBot2 configuration files including:
-- HAL configuration for Gazebo
-- Joint configurations
-- GUI and launcher configurations
+MuJoCo simulation. The MJCF is generated at launch from the modular generator
+(`concert_example.py`) by xbot2_mujoco, merged with `mjcf/concert_mujoco.xml.xacro`
+(actuators, joint defaults, initial pose). `config/` holds the XBot2 configuration
+for `--hw mj`.
 
-### concert_cartesio_config
+```bash
+ros2 launch concert_mujoco concert_mujoco.launch.py velodyne:=true realsense:=true ultrasound:=true
+```
+
+The VectorNav IMU (`imu`, default on), Velodyne VLP-16s, RealSense D435s and Bosch USS5
+ultrasounds (5 x 5 ray lidars) publish on the topics of the Gazebo sensors.
+Any `concert_examples` generator works (`modular_description:=`, or `pino.launch.py`):
+actuators, joint classes and initial pose are derived from its URDF and SRDF
+(`scripts/robot_mjcf.py`). `rviz:=true` opens `concert_gazebo`'s `concert_sensors.rviz`.
+
+### concert_cartesio
 
 CartesI/O inverse kinematics configuration for Cartesian control.
 
-### concert_demo
+### concert_tests
 
-Demo applications showcasing robot capabilities.
+Test scripts, e.g. `ros2 run concert_tests repeatability.py`.
 
 ## Dependencies
 
-- ROS Noetic / ROS2 Humble
+- ROS 2 Jazzy
 - Gazebo
 - XBot2
 - CartesI/O

@@ -46,7 +46,7 @@ services:
       - /tmp/.xbot2_isaac:/tmp/.xbot2_isaac:rw
       - ../../../:/workspace/iit-concert-ros-pkg:rw
       - ../../../:/home/user/xbot2_ws/src/iit-concert-ros-pkg:rw
-    working_dir: /home/user/xbot2_ws/src/iit-concert-ros-pkg/concert_config/xbot2
+    working_dir: /home/user/xbot2_ws/src/iit-concert-ros-pkg/concert_isaac/config/xbot2
     network_mode: host
     privileged: true
     stdin_open: true

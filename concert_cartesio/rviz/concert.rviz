@@ -1,283 +1,289 @@
 Panels:
-  - Class: rviz/Displays
-    Help Height: 78
-    Name: Displays
-    Property Tree Widget:
-      Expanded:
-        - /Global Options1
-        - /Status1
-        - /RobotModel1
-        - /BaseMarker1
-      Splitter Ratio: 0.39411765336990356
-    Tree Height: 549
-  - Class: rviz/Selection
-    Name: Selection
-  - Class: rviz/Tool Properties
+- Class: rviz_common/Displays
+  Help Height: 78
+  Name: Displays
+  Property Tree Widget:
     Expanded:
-      - /2D Pose Estimate1
-      - /2D Nav Goal1
-      - /Publish Point1
-    Name: Tool Properties
-    Splitter Ratio: 0.5886790156364441
-  - Class: rviz/Views
-    Expanded:
-      - /Current View1
-    Name: Views
-    Splitter Ratio: 0.5
-  - Class: rviz/Time
-    Name: Time
-    SyncMode: 0
-    SyncSource: ""
+    - /Global Options1
+    - /Status1
+    - /RobotModel1
+    - /BaseMarker1
+    Splitter Ratio: 0.39411765336990356
+  Tree Height: 549
+- Class: rviz_common/Selection
+  Name: Selection
+- Class: rviz_common/Tool Properties
+  Expanded:
+  - /2D Pose Estimate1
+  - /2D Nav Goal1
+  - /Publish Point1
+  Name: Tool Properties
+  Splitter Ratio: 0.5886790156364441
+- Class: rviz_common/Views
+  Expanded:
+  - /Current View1
+  Name: Views
+  Splitter Ratio: 0.5
+- Class: rviz_common/Time
+  Name: Time
+  SyncMode: 0
+  SyncSource: ''
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
   toolButtonStyle: 2
 Visualization Manager:
-  Class: ""
+  Class: ''
   Displays:
-    - Alpha: 0.5
-      Cell Size: 1
-      Class: rviz/Grid
-      Color: 160; 160; 164
-      Enabled: true
-      Line Style:
-        Line Width: 0.029999999329447746
-        Value: Lines
-      Name: Grid
-      Normal Cell Count: 0
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Plane: XY
-      Plane Cell Count: 10
-      Reference Frame: <Fixed Frame>
-      Value: true
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
-      Enabled: true
-      Links:
-        All Links Enabled: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        J1_A_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J1_B_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J1_C_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J1_D_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J1_E_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J2_A_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J2_B_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J2_C_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J2_D_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J2_E_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J3_E_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J4_E_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        J5_E_stator:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_1_A:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_1_A_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_1_B:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_1_B_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_1_C:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_1_C_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_1_D:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_1_D_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_1_E:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_1_E_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_2_A:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_2_A_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_2_B:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_2_B_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_2_C:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_2_C_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_2_D:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_2_D_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_2_E:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_2_E_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_3_E:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_3_E_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_4_E:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_4_E_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_5_E:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_5_E_rotor_fast:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        Link Tree Style: Links in Alphabetic Order
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        ee_E:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        mobile_base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        world:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-      Name: RobotModel
-      Robot Description: xbotcore/robot_description
-      TF Prefix: ci
-      Update Interval: 0
-      Value: true
-      Visual Enabled: true
-    - Class: rviz/InteractiveMarkers
-      Enable Transparency: true
-      Enabled: true
-      Name: BaseMarker
-      Show Axes: false
-      Show Descriptions: true
-      Show Visual Aids: false
-      Update Topic: /base_link_cartesian_marker_server/update
-      Value: true
+  - Alpha: 0.5
+    Cell Size: 1
+    Class: rviz_default_plugins/Grid
+    Color: 160; 160; 164
+    Enabled: true
+    Line Style:
+      Line Width: 0.029999999329447746
+      Value: Lines
+    Name: Grid
+    Normal Cell Count: 0
+    Offset:
+      X: 0
+      Y: 0
+      Z: 0
+    Plane: XY
+    Plane Cell Count: 10
+    Reference Frame: <Fixed Frame>
+    Value: true
+  - Alpha: 1
+    Class: rviz_default_plugins/RobotModel
+    Collision Enabled: false
+    Enabled: true
+    Links:
+      All Links Enabled: true
+      Expand Joint Details: false
+      Expand Link Details: false
+      Expand Tree: false
+      J1_A_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J1_B_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J1_C_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J1_D_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J1_E_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J2_A_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J2_B_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J2_C_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J2_D_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J2_E_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J3_E_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J4_E_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      J5_E_stator:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_1_A:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_1_A_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_1_B:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_1_B_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_1_C:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_1_C_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_1_D:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_1_D_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_1_E:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_1_E_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_2_A:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_2_A_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_2_B:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_2_B_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_2_C:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_2_C_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_2_D:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_2_D_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_2_E:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_2_E_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_3_E:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_3_E_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_4_E:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_4_E_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      L_5_E:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      L_5_E_rotor_fast:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      Link Tree Style: Links in Alphabetic Order
+      base_link:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+      ee_E:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      mobile_base:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      world:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+    Name: RobotModel
+    TF Prefix: ci
+    Update Interval: 0
+    Value: true
+    Visual Enabled: true
+    Description Source: Topic
+    Description Topic:
+      Value: /xbotcore/robot_description
+      Depth: 5
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+  - Class: rviz_default_plugins/InteractiveMarkers
+    Enable Transparency: true
+    Enabled: true
+    Name: BaseMarker
+    Show Axes: false
+    Show Descriptions: true
+    Show Visual Aids: false
+    Value: true
+    Interactive Markers Namespace: /base_link_cartesian_marker_server
   Enabled: true
   Global Options:
     Background Color: 211; 215; 207
@@ -286,26 +292,41 @@ Visualization Manager:
     Frame Rate: 30
   Name: root
   Tools:
-    - Class: rviz/Interact
-      Hide Inactive Objects: true
-    - Class: rviz/MoveCamera
-    - Class: rviz/Select
-    - Class: rviz/FocusCamera
-    - Class: rviz/Measure
-    - Class: rviz/SetInitialPose
-      Theta std deviation: 0.2617993950843811
-      Topic: /initialpose
-      X std deviation: 0.5
-      Y std deviation: 0.5
-    - Class: rviz/SetGoal
-      Topic: /move_base_simple/goal
-    - Class: rviz/PublishPoint
-      Single click: true
-      Topic: /clicked_point
+  - Class: rviz_default_plugins/Interact
+    Hide Inactive Objects: true
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Select
+  - Class: rviz_default_plugins/FocusCamera
+  - Class: rviz_default_plugins/Measure
+  - Class: rviz_default_plugins/SetInitialPose
+    Theta std deviation: 0.2617993950843811
+    Topic:
+      Value: /initialpose
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+    X std deviation: 0.5
+    Y std deviation: 0.5
+  - Class: rviz_default_plugins/SetGoal
+    Topic:
+      Value: /move_base_simple/goal
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+  - Class: rviz_default_plugins/PublishPoint
+    Single click: true
+    Topic:
+      Value: /clicked_point
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
   Value: true
   Views:
     Current:
-      Class: rviz/Orbit
+      Class: rviz_default_plugins/Orbit
       Distance: 3.5963454246520996
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -325,7 +346,7 @@ Visualization Manager:
       Pitch: 0.09039796888828278
       Target Frame: <Fixed Frame>
       Yaw: 4.938582897186279
-    Saved: ~
+    Saved: null
 Window Geometry:
   Displays:
     collapsed: true

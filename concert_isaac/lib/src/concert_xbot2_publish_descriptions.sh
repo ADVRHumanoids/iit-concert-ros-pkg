@@ -18,8 +18,6 @@ repo_root=/workspace/iit-concert-ros-pkg
 output_dir=/tmp/concert_xbot2_descriptions
 generator=/home/user/xbot2_ws/src/iit-concert-ros-pkg/concert_examples/src/concert_example.py
 usd_root="${repo_root}/concert_usd"
-urdf_root="${repo_root}/concert_urdf"
-srdf_root="${repo_root}/concert_srdf"
 urdf_file="${output_dir}/modularbot.urdf"
 srdf_file="${output_dir}/modularbot.srdf"
 params_file="${output_dir}/robot_description_publisher.yaml"
@@ -27,9 +25,7 @@ params_file="${output_dir}/robot_description_publisher.yaml"
 mkdir -p "${output_dir}"
 
 for required_file in \
-    "${usd_root}/usd/concert_complete/concert_complete.usd" \
-    "${urdf_root}/urdf/concert_complete.urdf" \
-    "${srdf_root}/srdf/ModularBot.srdf"; do
+    "${usd_root}/usd/concert_complete/concert_complete.usd"; do
     if [ ! -f "${required_file}" ]; then
         echo "[concert-xbot2] missing committed deployment asset: ${required_file}" >&2
         exit 1
