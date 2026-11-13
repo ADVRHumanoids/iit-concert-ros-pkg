@@ -30,15 +30,20 @@
                min_range="0.2" cutoff="3" slices="1" />
     </xacro:macro>
 
-    <!-- RealSense D435: one camera with the gz depth sensor's view (424 x 240, hfov 0.9138 rad,
-         6 Hz). Color and depth are rendered from it, both in <name>_depth_optical_frame.
-         Topics <name>/color/image_raw and <name>/depth/image_raw, as the gz sensors.
-         xyaxes: image right is -y, image up is +z of the depth frame (x forward). -->
+    <!-- RealSense D435, as the gz sensors: 424 x 240 at 6 Hz, a color camera (hfov 0.6726 rad)
+         in <name>_color_frame and a depth camera (hfov 0.9138 rad) in <name>_depth_frame.
+         Topics <name>/color/{image_raw,camera_info} in <name>_color_optical_frame and
+         <name>/depth/{image_raw,camera_info} in <name>_depth_optical_frame.
+         xyaxes: image right is -y, image up is +z of the frame (x forward). -->
     <xacro:macro name="d435" params="name">
+        <reference element="body" name="${name}_color_frame">
+            <camera name="${name}_color" xyaxes="0 -1 0 0 0 1" fovy="22.3843" resolution="424 240" />
+        </reference>
         <reference element="body" name="${name}_depth_frame">
             <camera name="${name}_depth" xyaxes="0 -1 0 0 0 1" fovy="31.0979" resolution="424 240" />
         </reference>
-        <rgbd camera="${name}_depth" topic="/${name}" rate="6" />
+        <rgbd camera="${name}_color" topic="/${name}" rate="6" streams="color" />
+        <rgbd camera="${name}_depth" topic="/${name}" rate="6" streams="depth" />
     </xacro:macro>
 
     <xacro:if value="$(arg velodyne)">
