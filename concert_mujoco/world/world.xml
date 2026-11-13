@@ -5,7 +5,7 @@
         <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
     </asset>
     <worldbody>
-        <geom name="floor" size="0 0 .05" type="plane" material="grid" condim="3" friction="0.6"/>
+        <geom name="floor" group="0" size="0 0 .05" type="plane" material="grid" condim="3" friction="0.6"/>
     </worldbody>
     <visual>
         <headlight ambient="0.5 0.5 0.5"/>

@@ -7,6 +7,8 @@
 
     <!-- Actuator gains are initial values: xbot2 commands overwrite them -->
     <default>
+        <!-- Collision geoms in group 3, hidden by the viewer; visual geoms are group 1 -->
+        <geom group="3" />
         <default class="concert_arm">
             <joint armature="0.4" damping="3.0" frictionloss="5.0" />
             <position kp="1000" kv="50" inheritrange="1.0" />
