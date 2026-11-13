@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>concert_mujoco</name>
+  <version>0.0.0</version>
+  <description>MuJoCo simulation of the Concert robot through xbot2_mujoco</description>
+
+  <maintainer email="todo@todo.todo">todo</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>concert_examples</exec_depend>
+  <exec_depend>concert_resources</exec_depend>
+  <exec_depend>concert_gazebo</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

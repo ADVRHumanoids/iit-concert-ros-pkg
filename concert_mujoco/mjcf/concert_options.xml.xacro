@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<mujoco xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <compiler angle="radian" />
+
+    <option integrator="implicitfast" timestep="0.001" />
+
+    <!-- Actuator gains are initial values: xbot2 commands overwrite them -->
+    <default>
+        <default class="concert_arm">
+            <joint armature="0.4" damping="3.0" frictionloss="5.0" />
+            <position kp="1000" kv="50" inheritrange="1.0" />
+        </default>
+        <default class="concert_steering">
+            <joint armature="0.4" damping="3.0" frictionloss="5.0" />
+            <position kp="300" kv="30" inheritrange="1.0" />
+        </default>
+        <default class="concert_wheel">
+            <joint armature="0.1" damping="0.01" frictionloss="0.01" />
+            <intvelocity kp="6" kv="5" inheritrange="1.0" />
+        </default>
+    </default>
+
+    <!-- spawn pose -->
+    <setattribute element="body" name="base_link">
+        <attribute name="pos" value="0 0 ${SPAWN_Z}" />
+    </setattribute>
+
+    <!-- childclass assignments; a wheel's class overrides its steering parent's -->
+    <setattribute element="body" name="L_1_E">
+        <attribute name="childclass" value="concert_arm" />
+    </setattribute>
+
+    <xacro:macro name="leg" params="id">
+        <setattribute element="body" name="L_1_${id}">
+            <attribute name="childclass" value="concert_steering" />
+        </setattribute>
+        <setattribute element="body" name="wheel_${id}">
+            <attribute name="childclass" value="concert_wheel" />
+        </setattribute>
+    </xacro:macro>
+    <xacro:leg id="A" />
+    <xacro:leg id="B" />
+    <xacro:leg id="C" />
+    <xacro:leg id="D" />
+
+    <!-- initial configuration: the SRDF home state of concert_example.py -->
+    <q_init>
+        <joint name="J1_A" value="0.0" />
+        <joint name="J1_B" value="0.0" />
+        <joint name="J1_C" value="0.0" />
+        <joint name="J1_D" value="0.0" />
+        <joint name="J_wheel_A" value="0.0" />
+        <joint name="J_wheel_B" value="0.0" />
+        <joint name="J_wheel_C" value="0.0" />
+        <joint name="J_wheel_D" value="0.0" />
+        <joint name="J1_E" value="0.0" />
+        <joint name="J2_E" value="-0.5" />
+        <joint name="J3_E" value="0.0" />
+        <joint name="J4_E" value="0.5" />
+        <joint name="J5_E" value="0.0" />
+        <joint name="J6_E" value="-0.5" />
+    </q_init>
+
+</mujoco>

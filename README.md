@@ -21,6 +21,7 @@ ROS packages for the Concert robot simulation and demonstration.
 This metapackage contains the following subpackages:
 
 - **concert_gazebo** - Gazebo simulation configurations
+- **concert_mujoco** - MuJoCo simulation through xbot2_mujoco
 - **concert_cartesio** - CartesI/O configuration
 - **concert_examples** - Modular robot descriptions and examples
 - **concert_odometry_ros2** - Odometry (base estimation) configuration
@@ -58,6 +59,17 @@ ros2 launch concert_cartesio concert.launch.py xbot:=true
 Gazebo simulation world files, model database, and launch files.
 `config/` holds the XBot2 configuration used in simulation (`modular.yaml`,
 HAL for Gazebo and dummy, GUI server configuration).
+
+### concert_mujoco
+
+MuJoCo simulation. The MJCF is generated at launch from the modular generator
+(`concert_example.py`) by xbot2_mujoco, merged with `mjcf/concert_mujoco.xml.xacro`
+(actuators, joint defaults, initial pose). `config/` holds the XBot2 configuration
+for `--hw mj`.
+
+```bash
+ros2 launch concert_mujoco concert_mujoco.launch.py
+```
 
 ### concert_cartesio
 
