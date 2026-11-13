@@ -131,7 +131,7 @@ def generate_launch_description():
             name=f'{camera}_color_bridge',
             arguments=[f'/{camera}/color/image_raw'],
         ) for camera in ('D435_camera_front', 'D435_camera_back')],
-        # RealSense D435 depth, camera infos and clouds; Bosch USS5 ultrasound clouds
+        # RealSense D435 depth, camera infos and clouds; Bosch USS5 ultrasound scans and clouds
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
@@ -146,8 +146,12 @@ def generate_launch_description():
                     f'/{camera}/depth/image_raw/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
                 )
             ] + [
-                f'/bosch_uss5/ultrasound_{name}/scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked'
+                topic
                 for name in ('fl_sag', 'fr_sag', 'rl_sag', 'rr_sag', 'fl_lat', 'fr_lat', 'rl_lat', 'rr_lat')
+                for topic in (
+                    f'/bosch_uss5/ultrasound_{name}/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+                    f'/bosch_uss5/ultrasound_{name}/scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+                )
             ],
         ),
     ])

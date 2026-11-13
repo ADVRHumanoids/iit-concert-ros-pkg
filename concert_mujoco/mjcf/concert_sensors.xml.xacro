@@ -22,12 +22,13 @@
 
     <!-- Bosch USS5 ultrasound, as the gz gpu_ray: a 5 x 5 ray lidar, [-1.15, 1.15] rad
          horizontally, [-0.5, 0.5] rad vertically, 5 Hz, 0.2 to 3 m.
-         Cloud on <topic>/points, as the gz sensor's. -->
+         Cloud on <topic>/points and LaserScan of the 0 deg layer on <topic>, as the gz sensor's. -->
     <xacro:macro name="uss5" params="name">
         <reference element="body" name="${name}">
             <site name="${name}" />
         </reference>
         <lidar reliable="true" geom_groups="0 2 4" site="${name}" topic="/bosch_uss5/${name}/scan/points" rate="5"
+               scan_topic="/bosch_uss5/${name}/scan"
                elevations_deg="-28.6479 -14.3239 0 14.3239 28.6479"
                horizontal_samples="5" start_azimuth_deg="65.8901" horizontal_fov_deg="131.7803"
                min_range="0.2" cutoff="3" slices="1" />
