@@ -7,11 +7,16 @@
 
     <!-- MUST match the imu arg of the URDF: the IMU site lives on vectornav_imu_link -->
     <xacro:arg name="imu" default="true" />
+    <!-- MUST match the URDF's as well: the sensors live on the links these args add -->
+    <xacro:arg name="velodyne" default="false" />
+    <xacro:arg name="realsense" default="false" />
+    <xacro:arg name="ultrasound" default="false" />
 
     <xacro:include filename="$(find concert_mujoco)/mjcf/concert_actuators.xml.xacro" />
     <xacro:include filename="$(find concert_mujoco)/mjcf/concert_options.xml.xacro" />
     <xacro:if value="$(arg imu)">
         <xacro:include filename="$(find concert_mujoco)/mjcf/concert_imu.xml.xacro" />
     </xacro:if>
+    <xacro:include filename="$(find concert_mujoco)/mjcf/concert_sensors.xml.xacro" />
 
 </mujoco>

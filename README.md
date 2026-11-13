@@ -68,8 +68,11 @@ MuJoCo simulation. The MJCF is generated at launch from the modular generator
 for `--hw mj`.
 
 ```bash
-ros2 launch concert_mujoco concert_mujoco.launch.py
+ros2 launch concert_mujoco concert_mujoco.launch.py velodyne:=true realsense:=true ultrasound:=true
 ```
+
+The VectorNav IMU (`imu`, default on), Velodyne VLP-16s, RealSense D435s and Bosch USS5
+ultrasounds (5 x 5 ray lidars) publish on the topics of the Gazebo sensors.
 
 ### concert_cartesio
 
