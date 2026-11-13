@@ -5,16 +5,11 @@ This package now mirrors the Kyon-style layout:
 - `concert_isaac/docker/iit-concert-ros-pkg-isaac`
 - `concert_isaac/lib/src`
 - `concert_isaac/python/src/concert_isaac`
-- sibling asset packages:
-  - `concert_urdf`
-  - `concert_srdf`
-  - `concert_usd`
+- sibling asset package `concert_usd`
 
-Canonical deployment assets under `iit-concert-ros-pkg`:
+Canonical deployment asset under `iit-concert-ros-pkg`:
 
 - `concert_usd/usd/concert_complete/concert_complete.usd`
-- `concert_urdf/urdf/concert_complete.urdf`
-- `concert_srdf/srdf/concert_complete.srdf`
 
 Runtime note:
 

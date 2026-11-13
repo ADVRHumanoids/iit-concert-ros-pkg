@@ -9,8 +9,6 @@ The Isaac-side layout now follows the Kyon pattern:
   - `docker/iit-concert-ros-pkg-isaac`
   - `lib/src`
   - `python/src/concert_isaac`
-- `concert_urdf`
-- `concert_srdf`
 - `concert_usd`
 
 The top-level mirrors under `concert_robot/concert_isaac` and
@@ -22,8 +20,6 @@ ROS packages for the Concert robot simulation and demonstration.
 
 This metapackage contains the following subpackages:
 
-- **concert_urdf** - URDF/Xacro robot description
-- **concert_srdf** - SRDF semantic robot description
 - **concert_gazebo** - Gazebo simulation configurations
 - **concert_cartesio** - CartesI/O configuration
 - **concert_examples** - Modular robot descriptions and examples
@@ -56,14 +52,6 @@ ros2 launch concert_cartesio concert.launch.py xbot:=true
 ```
 
 ## Packages
-
-### concert_urdf
-
-Contains the URDF/Xacro files describing the Concert robot's kinematics and visual/collision geometry.
-
-### concert_srdf
-
-Contains the SRDF files for MoveIt and XBot2 semantic description (joint groups, end-effectors, etc.).
 
 ### concert_gazebo
 
