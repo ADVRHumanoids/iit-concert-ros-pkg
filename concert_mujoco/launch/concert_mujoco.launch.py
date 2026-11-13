@@ -17,20 +17,22 @@ def generate_launch_description():
         DeclareLaunchArgument('modular_description', default_value=os.path.join(get_package_share_directory('concert_examples'), 'concert_example.py')),
         DeclareLaunchArgument('world', default_value=os.path.join(share, 'world', 'world.xml')),
         DeclareLaunchArgument('spawn_z', default_value='1.0'),
+        DeclareLaunchArgument('imu', default_value='true'),
         DeclareLaunchArgument('headless', default_value='false'),
     ]
 
     # The robot model comes from the same modular generator as Gazebo;
     # xbot2_mujoco converts the URDF to MJCF and merges concert_mujoco.xml.xacro into it.
     def simulator(context):
+        imu = ' imu:=' + LaunchConfiguration('imu').perform(context)
         generator = 'python3 ' + LaunchConfiguration('modular_description').perform(context)
         cmd = [
             'python3', '-m', 'xbot2_py_mujoco.simulate',
             '--name', 'concert',
-            '--urdf-cmd', generator + ' -o urdf -a gazebo_urdf:=false floating_base:=true -r modularbot',
-            '--srdf-cmd', generator + ' -o srdf -a gazebo_urdf:=false -r modularbot',
+            '--urdf-cmd', generator + ' -o urdf -a gazebo_urdf:=false floating_base:=true' + imu + ' -r modularbot',
+            '--srdf-cmd', generator + ' -o srdf -a gazebo_urdf:=false' + imu + ' -r modularbot',
             '--xml-cmd', 'xacro ' + os.path.join(share, 'mjcf', 'concert_mujoco.xml.xacro')
-                         + ' spawn_z:=' + LaunchConfiguration('spawn_z').perform(context),
+                         + ' spawn_z:=' + LaunchConfiguration('spawn_z').perform(context) + imu,
             '--xml', LaunchConfiguration('world').perform(context),
         ]
         if LaunchConfiguration('headless').perform(context) == 'true':

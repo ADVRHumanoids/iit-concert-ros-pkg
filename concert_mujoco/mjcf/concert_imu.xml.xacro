@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<mujoco xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <!-- VectorNav IMU of the mobile platform on /vectornav/imu, at the rate of the gz sensor -->
+    <reference element="body" name="vectornav_imu_link">
+        <site name="vectornav_imu_link" />
+    </reference>
+
+    <sensor>
+        <accelerometer name="vectornav_imu_acc" site="vectornav_imu_link" />
+        <gyro name="vectornav_imu_gyro" site="vectornav_imu_link" />
+    </sensor>
+
+    <imu site="vectornav_imu_link" topic="/vectornav/imu" frame_id="vectornav_imu_link" rate="100" />
+
+</mujoco>
