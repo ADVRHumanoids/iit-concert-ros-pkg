@@ -18,6 +18,7 @@ def generate_launch_description():
         DeclareLaunchArgument('modular_description', default_value=os.path.join(get_package_share_directory('concert_examples'), 'concert_example.py')),
         DeclareLaunchArgument('realsense', default_value='false'),
         DeclareLaunchArgument('velodyne', default_value='false'),
+        DeclareLaunchArgument('imu', default_value='true'),
         DeclareLaunchArgument('ultrasound', default_value='false'),
         DeclareLaunchArgument('use_gpu_ray', default_value='false'),
         DeclareLaunchArgument('paused', default_value='false'),
@@ -47,6 +48,7 @@ def generate_launch_description():
         ' -o urdf -a gazebo_urdf:=true floating_base:=true',
         ' realsense:=', LaunchConfiguration('realsense'),
         ' velodyne:=', LaunchConfiguration('velodyne'),
+        ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=', LaunchConfiguration('ultrasound'),
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot_gz'
@@ -59,6 +61,7 @@ def generate_launch_description():
         ' -o urdf -a gazebo_urdf:=false floating_base:=true',
         ' realsense:=', LaunchConfiguration('realsense'),
         ' velodyne:=', LaunchConfiguration('velodyne'),
+        ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=false',
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot'
@@ -71,6 +74,7 @@ def generate_launch_description():
         ' -o srdf -a gazebo_urdf:=false',
         ' realsense:=', LaunchConfiguration('realsense'),
         ' velodyne:=', LaunchConfiguration('velodyne'),
+        ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=false',
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot'
@@ -111,12 +115,13 @@ def generate_launch_description():
             arguments=[
                 # Clock
                 '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
-                # IMU
-                '/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
+                # IMU, on the gz topic of the vectornav_imu sensor
+                '/vectornav_imu_link@sensor_msgs/msg/Imu[gz.msgs.IMU',
                 # Velodyne LiDARs
                 '/VLP16_lidar_back/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
                 '/VLP16_lidar_front/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
             ],
+            remappings=[('/vectornav_imu_link', '/vectornav/imu')],
         ),
         # Bridge for RealSense RGBD Cameras - Gazebo Harmonic rgbd_camera topics
         # RGBD camera publishes to: /{topic}/image, /{topic}/depth_image, /{topic}/points
