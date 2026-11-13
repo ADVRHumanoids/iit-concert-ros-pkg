@@ -1,13 +1,8 @@
 <?xml version="1.0" ?>
 <!--
-  Gazebo sensor demo for sensors that do not require rendering.
-
-  Listen to sensor readings:
-
-    Altimeter: gz topic -e -t /altimeter
-    Imu: gz topic -e -t /imu
-    Magnetometer: gz topic -e -t /magnetometer
-    Air pressure: gz topic -e -t /air_pressure
+  Empty world of the Concert Gazebo simulation (modular.launch.py's default).
+  Loads the systems the robot's sensors need: IMU, rendering sensors (ogre2) and
+  realsense_gazebo_plugin's Ros2CameraSystem for the D435 depth cameras.
 -->
 <sdf version="1.6">
   <world name="default">
@@ -47,6 +42,13 @@
     <plugin
       filename="gz-sim-user-commands-system"
       name="gz::sim::systems::UserCommands">
+    </plugin>
+    <!-- Custom depth sensor of realsense_gazebo_plugin (RealSense D435).
+         MUST follow user-commands: it finds sensors in PreUpdate, so it has to run
+         after the robot is spawned in the same update -->
+    <plugin
+      filename="Ros2CameraSystem"
+      name="custom::Ros2CameraSystem">
     </plugin>
     <plugin
       filename="gz-sim-scene-broadcaster-system"
