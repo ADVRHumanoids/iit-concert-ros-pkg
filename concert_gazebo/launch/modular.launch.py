@@ -3,6 +3,7 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Exec
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, Command, PythonExpression
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 import os
 from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
@@ -88,8 +89,8 @@ def generate_launch_description():
         executable='robot_description_publisher',
         name='robot_description_publisher',
         parameters=[
-            {'robot_description': robot_description_xbot},
-            {'robot_description_semantic': robot_description_semantic}
+            {'robot_description': ParameterValue(robot_description_xbot, value_type=str)},
+            {'robot_description_semantic': ParameterValue(robot_description_semantic, value_type=str)}
         ],
         output='screen'
     )
@@ -105,7 +106,7 @@ def generate_launch_description():
             package='ros_gz_sim',
             executable='create',
             name='urdf_spawner',
-            parameters=[{'string': robot_description_gz, 'z': 1.0}]
+            parameters=[{'string': ParameterValue(robot_description_gz, value_type=str), 'z': 1.0}]
         ),
         # Bridge for standard topics
         Node(
@@ -123,40 +124,30 @@ def generate_launch_description():
             ],
             remappings=[('/vectornav_imu_link', '/vectornav/imu')],
         ),
-        # Bridge for RealSense RGBD Cameras - Gazebo Harmonic rgbd_camera topics
-        # RGBD camera publishes to: /{topic}/image, /{topic}/depth_image, /{topic}/points
-        # Use image_bridge for RGB, parameter_bridge for depth
-        Node(
+        # RealSense D435 colour images (realsense_gazebo_description topics)
+        *[Node(
             package='ros_gz_image',
             executable='image_bridge',
-            name='d435i_front_color_bridge',
-            arguments=['/D435i_camera_front/image'],
-            remappings=[
-                ('/D435i_camera_front/image', '/D435i_camera_front/color/image_raw')
-            ],
-        ),
-        Node(
-            package='ros_gz_image',
-            executable='image_bridge',
-            name='d435i_back_color_bridge',
-            arguments=['/D435i_camera_back/image'],
-            remappings=[
-                ('/D435i_camera_back/image', '/D435i_camera_back/color/image_raw')
-            ],
-        ),
-        # Bridge for depth images using parameter_bridge
-        # Topics will be: /D435i_camera_front/depth_image, /D435i_camera_back/depth_image
+            name=f'{camera}_color_bridge',
+            arguments=[f'/{camera}/color/image_raw'],
+        ) for camera in ('D435_camera_front', 'D435_camera_back')],
+        # RealSense D435 depth, camera infos and clouds; Bosch USS5 ultrasound clouds
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
-            name='ros_gz_rgbd_bridge',
+            name='ros_gz_sensors_bridge',
             arguments=[
-                # Depth images
-                '/D435i_camera_front/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
-                '/D435i_camera_back/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
-                # Point clouds
-                '/D435i_camera_front/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
-                '/D435i_camera_back/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+                topic
+                for camera in ('D435_camera_front', 'D435_camera_back')
+                for topic in (
+                    f'/{camera}/color/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+                    f'/{camera}/depth/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
+                    f'/{camera}/depth/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+                    f'/{camera}/depth/image_raw/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+                )
+            ] + [
+                f'/bosch_uss5/ultrasound_{name}/scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked'
+                for name in ('fl_sag', 'fr_sag', 'rl_sag', 'rr_sag', 'fl_lat', 'fr_lat', 'rl_lat', 'rr_lat')
             ],
         ),
     ])
