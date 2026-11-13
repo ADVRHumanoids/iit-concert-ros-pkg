@@ -73,6 +73,9 @@ ros2 launch concert_mujoco concert_mujoco.launch.py velodyne:=true realsense:=tr
 
 The VectorNav IMU (`imu`, default on), Velodyne VLP-16s, RealSense D435s and Bosch USS5
 ultrasounds (5 x 5 ray lidars) publish on the topics of the Gazebo sensors.
+Any `concert_examples` generator works (`modular_description:=`, or `pino.launch.py`):
+actuators, joint classes and initial pose are derived from its URDF and SRDF
+(`scripts/robot_mjcf.py`). `rviz:=true` opens `concert_gazebo`'s `concert_sensors.rviz`.
 
 ### concert_cartesio
 

@@ -7,4 +7,8 @@ install(DIRECTORY config launch mjcf world
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(PROGRAMS scripts/robot_mjcf.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
