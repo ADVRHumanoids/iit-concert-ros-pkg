@@ -8,17 +8,22 @@
     <!-- Joint classes robot_mjcf.py assigns. Actuator gains are initial values:
          xbot2 commands overwrite them -->
     <default>
-        <!-- Collision geoms in group 3, hidden by the viewer; visual geoms are group 1 -->
+        <!-- Collision geoms in group 3, hidden by the viewer; visual geoms are group 1.
+             The moving parts' collision geoms are in group 4, hidden too: lidars see them, not the
+             base and the sensor housings, which enclose the sensors (the gz min range hides them). -->
         <geom group="3" />
         <default class="concert_arm">
+            <geom group="4" />
             <joint armature="0.4" damping="3.0" frictionloss="5.0" />
             <position kp="1000" kv="50" inheritrange="1.0" />
         </default>
         <default class="concert_steering">
+            <geom group="4" />
             <joint armature="0.4" damping="3.0" frictionloss="5.0" />
             <position kp="300" kv="30" inheritrange="1.0" />
         </default>
         <default class="concert_wheel">
+            <geom group="4" />
             <joint armature="0.1" damping="0.01" frictionloss="0.01" />
             <intvelocity kp="6" kv="5" inheritrange="1.0" />
         </default>

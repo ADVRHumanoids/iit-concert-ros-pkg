@@ -8,6 +8,9 @@ Every actuated URDF joint gets an actuator named after it (the xbot2 bridge requ
   class concert_wheel;
 - joints whose next actuated joints include a wheel (steering): position, class concert_steering;
 - the others (arms): position, class concert_arm.
+The class is the childclass of the joint's child body: its subtree (a steering body's wheel
+excepted) gets the class's joint and actuator defaults and its collision geoms in group 4, which
+lidars see. The robot's other collision geoms (base, sensor housings) stay in group 3.
 The initial pose is the SRDF's home group_state.
 """
 import sys
@@ -47,8 +50,8 @@ def robot_mjcf(urdf, srdf):
         else:
             tag, cls = 'position', 'concert_arm'
         ET.SubElement(actuator, tag, {'class': cls, 'name': name, 'joint': name})
-        setattribute = ET.SubElement(mujoco, 'setattribute', element='joint', name=name)
-        ET.SubElement(setattribute, 'attribute', name='class', value=cls)
+        setattribute = ET.SubElement(mujoco, 'setattribute', element='body', name=joint.find('child').get('link'))
+        ET.SubElement(setattribute, 'attribute', name='childclass', value=cls)
 
     q_init = ET.SubElement(mujoco, 'q_init')
     for state in srdf.findall('group_state'):

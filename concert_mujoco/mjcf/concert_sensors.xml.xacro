@@ -3,7 +3,10 @@
 
     <!-- Sensors of the URDF the modular generator writes with velodyne:=, realsense:=, ultrasound:=.
          Geometry, rates and topics are those of the gz sensors in that URDF.
-         Rays see geom groups 0 and 2: the world, not the robot (visual 1, collision 3). -->
+         Lidar rays see geom groups 0, 2 and 4: the world and the robot's moving parts (arms,
+         steering, wheels), not the base and sensor housings around the sensors (group 3).
+         Cameras also render the robot's visuals (group 1), as the gz cameras.
+         Publishers are reliable, as ros_gz_bridge's. -->
 
     <!-- Velodyne VLP-16: 16 rings in [-15, 15] deg, 440 columns over the gz sector
          [-1.4, 3.2] rad, 10 Hz, 0.9 to 130 m. Cloud on <name>/points, as the gz lidar. -->
@@ -11,7 +14,7 @@
         <reference element="body" name="${name}">
             <site name="${name}" />
         </reference>
-        <lidar site="${name}" topic="/${name}/points" rate="10"
+        <lidar reliable="true" geom_groups="0 2 4" site="${name}" topic="/${name}/points" rate="10"
                elevations_deg="-15 -13 -11 -9 -7 -5 -3 -1 1 3 5 7 9 11 13 15"
                horizontal_samples="440" start_azimuth_deg="183.3465" horizontal_fov_deg="263.5606"
                min_range="0.9" cutoff="130" />
@@ -24,7 +27,7 @@
         <reference element="body" name="${name}">
             <site name="${name}" />
         </reference>
-        <lidar site="${name}" topic="/bosch_uss5/${name}/scan/points" rate="5"
+        <lidar reliable="true" geom_groups="0 2 4" site="${name}" topic="/bosch_uss5/${name}/scan/points" rate="5"
                elevations_deg="-28.6479 -14.3239 0 14.3239 28.6479"
                horizontal_samples="5" start_azimuth_deg="65.8901" horizontal_fov_deg="131.7803"
                min_range="0.2" cutoff="3" slices="1" />
@@ -34,6 +37,7 @@
          in <name>_color_frame and a depth camera (hfov 0.9138 rad) in <name>_depth_frame.
          Topics <name>/color/{image_raw,camera_info} in <name>_color_optical_frame and
          <name>/depth/{image_raw,camera_info} in <name>_depth_optical_frame.
+         Depth outside the gz clip [0.195, 10] m is -inf (near) or +inf (far, no hit), as gz writes it.
          xyaxes: image right is -y, image up is +z of the frame (x forward). -->
     <xacro:macro name="d435" params="name">
         <reference element="body" name="${name}_color_frame">
@@ -42,8 +46,9 @@
         <reference element="body" name="${name}_depth_frame">
             <camera name="${name}_depth" xyaxes="0 -1 0 0 0 1" fovy="31.0979" resolution="424 240" />
         </reference>
-        <rgbd camera="${name}_color" topic="/${name}" rate="6" streams="color" />
-        <rgbd camera="${name}_depth" topic="/${name}" rate="6" streams="depth" />
+        <rgbd reliable="true" camera="${name}_color" topic="/${name}" rate="6" streams="color" geom_groups="0 1 2" />
+        <rgbd reliable="true" camera="${name}_depth" topic="/${name}" rate="6" streams="depth" depth_range="0.195 10"
+              geom_groups="0 1 2" />
     </xacro:macro>
 
     <xacro:if value="$(arg velodyne)">
