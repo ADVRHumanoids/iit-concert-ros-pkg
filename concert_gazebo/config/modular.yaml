@@ -1,0 +1,94 @@
+## XBotInterface related configs
+
+XBotInterface:
+  urdf: "ros2 topic echo /robot_description --once --field data | grep -v '^---$'"
+  srdf: "ros2 topic echo /robot_description_semantic --once --field data | grep -v '^---$'"
+ModelInterface:
+  model_type: pin
+
+  
+## XBot2 related configuration
+
+# hal
+xbotcore_device_configs:
+    sim: $(ros2 pkg prefix --share concert_gazebo)/config/hal/ModularBot_gz.yaml
+    dummy: $(ros2 pkg prefix --share concert_gazebo)/config/hal/ModularBot_dummy.yaml
+
+# define threads to be created
+xbotcore_threads:
+  rt_main: { sched: fifo, prio: 60, period: 0.001}
+  nrt_main: { sched: other, prio: 0, period: 0.005 }
+  
+# define plugins to be loaded
+xbotcore_plugins:
+
+  ros_io: { thread: nrt_main, type: ros2_io }
+
+  ros_ctrl: { thread: nrt_main, type: ros2_control, params: { autostart: true } }
+
+  omnisteering:
+    thread: nrt_main
+    type: omnisteering_controller_plugin
+    params:
+      wheel_names:
+        value: [wheel_A, wheel_B, wheel_C, wheel_D]
+        type: vector<string>
+      wheel_radius:
+        value: [0.16, 0.16, 0.16, 0.16]
+        type: vector<double>
+
+  homing:
+    thread: rt_main
+    type: homing
+    params:
+      time: { value: 5.0, type: double }
+
+  gcomp:
+    thread: rt_main
+    type: gcomp_example
+    params: 
+      enabled_chains: [chain_E]
+
+  cartesio_imp: 
+    thread: rt_main 
+    type: albero_cartesio_rt
+    params:
+      enabled_chains: 
+          value: [chain_E]
+          type: vector<string>
+      problem_description:
+          value: $PWD/ModularBot_impedance_config.yaml
+          type: file
+      solver: {value: AlberoImpedance, type: string}
+      enable_feedback: {value: true, type: bool}
+      fc_map: {value: {low: 0.9, high: 0.95}, type: map<double>}
+      use_payload_estimator:
+        value: false  # note: keep false if you care to live
+        type: bool
+      payload_estimator_link:
+        value: ee_E
+        type: string
+
+  # concert_demo force_follow_me: base twist from the wrench at ee_E
+  # (force_follow_me force_estimation.launch.py), sent to omnisteering
+  force_follow_me:
+    type: force_follow_me
+    thread: nrt_main
+    params:
+      wrench_topic: /force_estimation/ee_E
+      # maps of wrench/twist indices (0-5, written as strings)
+      wrench_to_twist_map: {value: {'0': 0, '1': 5}, type: map<int>}  # Fx -> vx, Fy -> wz
+      wrench_threshold: {value: {'0': 8.0, '1': 8.0}, type: map<double>}
+      wrench_limits: {value: {'0': 85.0, '1': 85.0}, type: map<double>}
+      twist_limits: {value: {'0': 0.3, '1': 0.3, '5': 0.6}, type: map<double>}
+      use_safety: true
+      sensor_type: 0
+      sensors: [ultrasound_rr_lat, ultrasound_rl_sag, ultrasound_rl_lat, ultrasound_fl_lat, ultrasound_fr_lat]
+      sensor_threshold: [0.75, 0.3]  # slow down below, stop below [m]
+    remap:
+      cmd_vel_V6: omnisteering/cmd_vel_V6
+
+# additional parameters that don't relate to any plugin
+xbotcore_param:
+  /xbot/hal/joint_safety/filter_autostart: {value: true, type: bool}
+  /xbot/hal/joint_safety/filter_cutoff_hz: {value: 2.0, type: double}

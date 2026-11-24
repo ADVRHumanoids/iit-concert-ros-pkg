@@ -101,7 +101,7 @@ def generate_launch_description():
         executable='static_transform_publisher',
         name='connect_worlds',
         output='screen',
-        arguments=['0', '0', '0', '0', '0', '0', 'world', 'odometry/world', '10']
+        arguments=['--frame-id', 'world', '--child-frame-id', 'odometry/world']
     )
 
     # --- RViz Node, only if gui==true ---

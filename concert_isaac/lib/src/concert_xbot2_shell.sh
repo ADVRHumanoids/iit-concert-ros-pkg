@@ -55,6 +55,6 @@ for topic in /robot_description /robot_description_semantic; do
     fi
 done
 
-cd /home/user/xbot2_ws/src/iit-concert-ros-pkg/concert_config/xbot2
+cd /home/user/xbot2_ws/src/iit-concert-ros-pkg/concert_isaac/config/xbot2
 
 exec bash

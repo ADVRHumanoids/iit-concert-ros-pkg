@@ -29,7 +29,13 @@ install(DIRECTORY launch
 install(DIRECTORY rviz
   DESTINATION share/${PROJECT_NAME})
 
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME})
+
 install(DIRECTORY world
   DESTINATION share/${PROJECT_NAME})
+
+install(PROGRAMS scripts/uss5_range_relay.py
+  DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
