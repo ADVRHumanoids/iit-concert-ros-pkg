@@ -27,6 +27,8 @@ def generate_launch_description():
         DeclareLaunchArgument('ultrasound', default_value='false'),
         DeclareLaunchArgument('drill_camera', default_value='false'),
         DeclareLaunchArgument('headless', default_value='false'),
+        # e.g. tcp://127.0.0.1:5555 enables xbot2_mujoco's mjctl (disturbances, contact parameters)
+        DeclareLaunchArgument('remote_control_endpoint', default_value=''),
         DeclareLaunchArgument('rviz', default_value='false'),
     ]
 
@@ -72,6 +74,8 @@ def generate_launch_description():
         ]
         if LaunchConfiguration('headless').perform(context) == 'true':
             cmd.append('--headless')
+        if LaunchConfiguration('remote_control_endpoint').perform(context):
+            cmd += ['--remote-control-endpoint', LaunchConfiguration('remote_control_endpoint').perform(context)]
         actions = [ExecuteProcess(cmd=cmd, additional_env={'PYTHONUNBUFFERED': '1'}, output='screen')]
 
         # The gz depth sensors also publish a cloud on <depth topic>/points
@@ -84,6 +88,13 @@ def generate_launch_description():
                 remappings=[('image_rect', f'/{camera}/depth/image_raw'),
                             ('camera_info', f'/{camera}/depth/camera_info'),
                             ('points', f'/{camera}/depth/image_raw/points')],
+                parameters=[{'use_sim_time': True}],
+                output='log',
+            ))
+        # The robot's ultrasounds publish a Range on /bosch_uss5/<sensor>
+        if enabled['ultrasound']:
+            actions.append(Node(
+                package='concert_gazebo', executable='uss5_range_relay.py',
                 parameters=[{'use_sim_time': True}],
                 output='log',
             ))
