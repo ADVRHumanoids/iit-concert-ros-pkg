@@ -35,4 +35,7 @@ install(DIRECTORY config
 install(DIRECTORY world
   DESTINATION share/${PROJECT_NAME})
 
+install(PROGRAMS scripts/uss5_range_relay.py
+  DESTINATION lib/${PROJECT_NAME})
+
 ament_package()
