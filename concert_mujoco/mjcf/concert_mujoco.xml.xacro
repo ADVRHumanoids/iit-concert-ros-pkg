@@ -11,6 +11,7 @@
     <xacro:arg name="velodyne" default="false" />
     <xacro:arg name="realsense" default="false" />
     <xacro:arg name="ultrasound" default="false" />
+    <xacro:arg name="drill_camera" default="false" />
 
     <xacro:include filename="$(find concert_mujoco)/mjcf/concert_options.xml.xacro" />
     <xacro:if value="$(arg imu)">

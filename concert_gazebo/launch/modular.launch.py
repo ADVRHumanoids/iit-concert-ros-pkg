@@ -21,6 +21,7 @@ def generate_launch_description():
         DeclareLaunchArgument('velodyne', default_value='false'),
         DeclareLaunchArgument('imu', default_value='true'),
         DeclareLaunchArgument('ultrasound', default_value='false'),
+        DeclareLaunchArgument('drill_camera', default_value='false'),
         DeclareLaunchArgument('use_gpu_ray', default_value='false'),
         DeclareLaunchArgument('paused', default_value='false'),
         DeclareLaunchArgument('use_sim_time', default_value='true'),
@@ -51,6 +52,7 @@ def generate_launch_description():
         ' velodyne:=', LaunchConfiguration('velodyne'),
         ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=', LaunchConfiguration('ultrasound'),
+        ' drill_camera:=', LaunchConfiguration('drill_camera'),
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot_gz'
     ],
@@ -64,6 +66,7 @@ def generate_launch_description():
         ' velodyne:=', LaunchConfiguration('velodyne'),
         ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=false',
+        ' drill_camera:=', LaunchConfiguration('drill_camera'),
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot'
     ],
@@ -77,6 +80,7 @@ def generate_launch_description():
         ' velodyne:=', LaunchConfiguration('velodyne'),
         ' imu:=', LaunchConfiguration('imu'),
         ' ultrasound:=false',
+        ' drill_camera:=', LaunchConfiguration('drill_camera'),
         ' use_gpu_ray:=', LaunchConfiguration('use_gpu_ray'),
         ' -r modularbot'
     ],
@@ -130,7 +134,7 @@ def generate_launch_description():
             executable='image_bridge',
             name=f'{camera}_color_bridge',
             arguments=[f'/{camera}/color/image_raw'],
-        ) for camera in ('D435_camera_front', 'D435_camera_back')],
+        ) for camera in ('D435_camera_front', 'D435_camera_back', 'drill_camera_E')],
         # RealSense D435 depth, camera infos and clouds; Bosch USS5 ultrasound scans and clouds
         Node(
             package='ros_gz_bridge',
@@ -138,7 +142,7 @@ def generate_launch_description():
             name='ros_gz_sensors_bridge',
             arguments=[
                 topic
-                for camera in ('D435_camera_front', 'D435_camera_back')
+                for camera in ('D435_camera_front', 'D435_camera_back', 'drill_camera_E')
                 for topic in (
                     f'/{camera}/color/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
                     f'/{camera}/depth/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
@@ -153,6 +157,19 @@ def generate_launch_description():
                     f'/bosch_uss5/ultrasound_{name}/scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
                 )
             ],
+        ),
+        # The RealSense driver publishes the drill camera depth registered to the color camera
+        Node(
+            condition=IfCondition(LaunchConfiguration('drill_camera')),
+            package='depth_image_proc',
+            executable='register_node',
+            name='drill_camera_E_register',
+            remappings=[('depth/image_rect', '/drill_camera_E/depth/image_raw'),
+                        ('depth/camera_info', '/drill_camera_E/depth/camera_info'),
+                        ('rgb/camera_info', '/drill_camera_E/color/camera_info'),
+                        ('depth_registered/image_rect', '/drill_camera_E/aligned_depth_to_color/image_raw'),
+                        ('depth_registered/camera_info', '/drill_camera_E/aligned_depth_to_color/camera_info')],
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
         ),
     ])
 

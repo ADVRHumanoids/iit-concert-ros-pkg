@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <mujoco xmlns:xacro="http://ros.org/wiki/xacro">
 
-    <!-- Sensors of the URDF the modular generator writes with velodyne:=, realsense:=, ultrasound:=.
+    <!-- Sensors of the URDF the modular generator writes with velodyne:=, realsense:=, ultrasound:=,
+         drill_camera:=.
          Geometry, rates and topics are those of the gz sensors in that URDF.
          Lidar rays see geom groups 0, 2 and 4: the world and the robot's moving parts (arms,
          steering, wheels), not the base and sensor housings around the sensors (group 3).
@@ -71,6 +72,10 @@
     <xacro:if value="$(arg realsense)">
         <xacro:d435 name="D435_camera_front" />
         <xacro:d435 name="D435_camera_back" />
+    </xacro:if>
+
+    <xacro:if value="$(arg drill_camera)">
+        <xacro:d435 name="drill_camera_E" />
     </xacro:if>
 
 </mujoco>

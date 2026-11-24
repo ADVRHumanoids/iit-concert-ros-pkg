@@ -25,13 +25,15 @@ def generate_launch_description():
         DeclareLaunchArgument('velodyne', default_value='false'),
         DeclareLaunchArgument('realsense', default_value='false'),
         DeclareLaunchArgument('ultrasound', default_value='false'),
+        DeclareLaunchArgument('drill_camera', default_value='false'),
         DeclareLaunchArgument('headless', default_value='false'),
         DeclareLaunchArgument('rviz', default_value='false'),
     ]
 
     # Link of each sensor in the URDF: a sensor is enabled only if requested and present
     sensor_links = {'imu': 'vectornav_imu_link', 'velodyne': 'VLP16_lidar_front',
-                    'realsense': 'D435_camera_front_depth_frame', 'ultrasound': 'ultrasound_fl_sag'}
+                    'realsense': 'D435_camera_front_depth_frame', 'ultrasound': 'ultrasound_fl_sag',
+                    'drill_camera': 'drill_camera_E_depth_frame'}
 
     # The robot model comes from the same modular generator as Gazebo, run once here.
     # xbot2_mujoco converts the URDF to MJCF and merges into it concert_mujoco.xml.xacro
@@ -73,17 +75,31 @@ def generate_launch_description():
         actions = [ExecuteProcess(cmd=cmd, additional_env={'PYTHONUNBUFFERED': '1'}, output='screen')]
 
         # The gz depth sensors also publish a cloud on <depth topic>/points
-        if enabled['realsense']:
-            for camera in ('D435_camera_front', 'D435_camera_back'):
-                actions.append(Node(
-                    package='depth_image_proc', executable='point_cloud_xyz_node',
-                    name=camera + '_points',
-                    remappings=[('image_rect', f'/{camera}/depth/image_raw'),
-                                ('camera_info', f'/{camera}/depth/camera_info'),
-                                ('points', f'/{camera}/depth/image_raw/points')],
-                    parameters=[{'use_sim_time': True}],
-                    output='log',
-                ))
+        cameras = (['D435_camera_front', 'D435_camera_back'] if enabled['realsense'] else []) \
+            + (['drill_camera_E'] if enabled['drill_camera'] else [])
+        for camera in cameras:
+            actions.append(Node(
+                package='depth_image_proc', executable='point_cloud_xyz_node',
+                name=camera + '_points',
+                remappings=[('image_rect', f'/{camera}/depth/image_raw'),
+                            ('camera_info', f'/{camera}/depth/camera_info'),
+                            ('points', f'/{camera}/depth/image_raw/points')],
+                parameters=[{'use_sim_time': True}],
+                output='log',
+            ))
+        # The RealSense driver publishes the depth registered to the color camera
+        if enabled['drill_camera']:
+            actions.append(Node(
+                package='depth_image_proc', executable='register_node',
+                name='drill_camera_E_register',
+                remappings=[('depth/image_rect', '/drill_camera_E/depth/image_raw'),
+                            ('depth/camera_info', '/drill_camera_E/depth/camera_info'),
+                            ('rgb/camera_info', '/drill_camera_E/color/camera_info'),
+                            ('depth_registered/image_rect', '/drill_camera_E/aligned_depth_to_color/image_raw'),
+                            ('depth_registered/camera_info', '/drill_camera_E/aligned_depth_to_color/camera_info')],
+                parameters=[{'use_sim_time': True}],
+                output='log',
+            ))
         return actions
 
     # The bridge socket exists once the simulator publishes /clock.
