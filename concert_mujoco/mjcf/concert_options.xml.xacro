@@ -15,7 +15,7 @@
         <default class="concert_arm">
             <geom group="4" />
             <joint armature="0.4" damping="3.0" frictionloss="5.0" />
-            <position kp="1000" kv="50" inheritrange="1.0" />
+            <position kp="10000" kv="300" inheritrange="1.0" />
         </default>
         <default class="concert_steering">
             <geom group="4" />
