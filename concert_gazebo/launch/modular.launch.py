@@ -158,6 +158,13 @@ def generate_launch_description():
                 )
             ],
         ),
+        # The robot's ultrasounds publish a Range on /bosch_uss5/<sensor>
+        Node(
+            condition=IfCondition(LaunchConfiguration('ultrasound')),
+            package='concert_gazebo',
+            executable='uss5_range_relay.py',
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+        ),
         # The RealSense driver publishes the drill camera depth registered to the color camera
         Node(
             condition=IfCondition(LaunchConfiguration('drill_camera')),
